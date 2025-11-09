@@ -4,7 +4,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/ceshi/',
+  base: '/kamicard2/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')
