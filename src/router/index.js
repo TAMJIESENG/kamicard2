@@ -120,7 +120,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory('/ceshi/'),
+  history: createWebHistory('/kamicard2/'),
   routes
 })
 
