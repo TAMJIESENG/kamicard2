@@ -67,6 +67,10 @@
                     <el-icon><ShoppingCart /></el-icon>
                     卡密商城
                   </el-dropdown-item>
+                  <el-dropdown-item command="coupon">
+                    <el-icon><Ticket /></el-icon>
+                    领取优惠券
+                  </el-dropdown-item>
                   <el-dropdown-item command="profile">
                     <el-icon><User /></el-icon>
                     个人设置
@@ -74,6 +78,15 @@
                   <el-dropdown-item command="settings">
                     <el-icon><Setting /></el-icon>
                     系统设置
+                  </el-dropdown-item>
+                  <el-dropdown-item command="ai" v-if="showAiOption">
+                    <el-icon><ChatDotRound /></el-icon>
+                    AI 助手
+                    <el-tag size="small" type="warning" style="margin-left: 8px;">VIP</el-tag>
+                  </el-dropdown-item>
+                  <el-dropdown-item command="contact">
+                    <el-icon><Service /></el-icon>
+                    联系管理员
                   </el-dropdown-item>
                   <el-dropdown-item v-if="isAdmin" command="admin">
                     <el-icon><Tools /></el-icon>
@@ -337,7 +350,7 @@ import { useUserStore } from '@/stores/user'
 import { 
   ArrowDown, ArrowRight, User, Setting, Monitor, Tools, SwitchButton,
   Key, Lock, TrendCharts, DataAnalysis, Lightning, VideoPlay,
-  Document, Phone, Star, Check, ShoppingCart, Bell
+  Document, Phone, Star, Check, ShoppingCart, Bell, ChatDotRound, Ticket, Service
 } from '@element-plus/icons-vue'
 import HomeAnnouncements from '@/components/HomeAnnouncements.vue'
 
@@ -347,6 +360,40 @@ const userStore = useUserStore()
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const isAdmin = computed(() => userStore.isAdmin)
 const user = computed(() => userStore.user)
+
+// 检查是否显示AI选项（VIP或SVIP年卡用户）
+const showAiOption = computed(() => {
+  if (!user.value) return false
+  
+  // 检查是否是VIP或SVIP
+  const userLevel = user.value.level
+  if (userLevel !== 'VIP' && userLevel !== 'SVIP') {
+    return false
+  }
+  
+  // 检查VIP是否有效（未过期）
+  const currentTime = new Date()
+  const expireTime = user.value.vipExpireTime ? new Date(user.value.vipExpireTime) : null
+  
+  if (!expireTime || expireTime <= currentTime) {
+    return false
+  }
+  
+  // 检查是否购买过年卡
+  try {
+    const vipOrders = JSON.parse(localStorage.getItem('vip_orders') || '[]')
+    const userYearlyOrders = vipOrders.filter(order => 
+      String(order.userId) === String(user.value.id) &&
+      order.status === 'completed' &&
+      order.packageType === 'yearly'
+    )
+    
+    return userYearlyOrders.length > 0
+  } catch (error) {
+    console.error('检查AI权限失败:', error)
+    return false
+  }
+})
 
 // 检查是否有新公告（24小时内发布的）
 const hasNewAnnouncements = computed(() => {
@@ -467,12 +514,20 @@ const scrollToSection = (sectionId) => {
 }
 
 const handleCommand = (command) => {
+  if (command === 'contact') {
+    router.push('/contact')
+    return
+  }
+  
   switch (command) {
     case 'dashboard':
       router.push('/dashboard')
       break
     case 'cards':
       router.push('/cards')
+      break
+    case 'coupon':
+      router.push('/coupon-claim')
       break
     case 'announcements':
       router.push('/announcements')
@@ -482,6 +537,9 @@ const handleCommand = (command) => {
       break
     case 'settings':
       router.push('/settings')
+      break
+    case 'ai':
+      router.push('/ai-assistant')
       break
     case 'admin':
       router.push('/admin')

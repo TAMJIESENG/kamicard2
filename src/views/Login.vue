@@ -73,7 +73,7 @@
           <el-form-item prop="password" class="form-field">
             <div class="field-label">
               <label>密码</label>
-              <a href="#" class="forgot-link" @click.prevent>忘记密码？</a>
+              <router-link to="/forgot-password" class="forgot-link">忘记密码？</router-link>
             </div>
             <div class="input-wrapper">
               <div class="input-prefix">
@@ -91,7 +91,22 @@
             </div>
           </el-form-item>
           
-          <el-form-item prop="captcha" class="form-field">
+          <!-- 验证码切换按钮 -->
+          <div class="captcha-mode-switch">
+            <button 
+              type="button"
+              class="mode-switch-btn"
+              @click="useAdvancedCaptcha = !useAdvancedCaptcha"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+              </svg>
+              {{ useAdvancedCaptcha ? '使用简单验证码' : '使用高级验证码' }}
+            </button>
+          </div>
+
+          <!-- 简单验证码 -->
+          <el-form-item v-if="!useAdvancedCaptcha" prop="captcha" class="form-field">
             <div class="field-label">
               <label>验证码</label>
             </div>
@@ -131,6 +146,18 @@
               </button>
             </div>
           </el-form-item>
+
+          <!-- 高级验证码 -->
+          <div v-else class="form-field advanced-captcha-field">
+            <div class="field-label">
+              <label>安全验证</label>
+            </div>
+            <AdvancedCaptcha 
+              ref="advancedCaptchaRef"
+              @success="onAdvancedCaptchaSuccess"
+              @fail="onAdvancedCaptchaFail"
+            />
+          </div>
           
           <div class="form-options">
             <el-checkbox v-model="loginForm.remember" class="remember-checkbox">
@@ -182,18 +209,24 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import { User, Lock } from '@element-plus/icons-vue'
+import AdvancedCaptcha from '@/components/AdvancedCaptcha.vue'
+import { checkLoginProtection, recordLoginFailure, clearLoginAttempts } from '@/utils/firewall'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const maintenanceStore = useMaintenanceStore()
 
 const loginFormRef = ref()
+const advancedCaptchaRef = ref()
 const loading = ref(false)
+const useAdvancedCaptcha = ref(false)
+const advancedCaptchaVerified = ref(false)
 
 const loginForm = reactive({
   username: '',
@@ -202,7 +235,7 @@ const loginForm = reactive({
   remember: false
 })
 
-const rules = {
+const rules = computed(() => ({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' }
@@ -211,14 +244,23 @@ const rules = {
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度至少 6 个字符', trigger: 'blur' }
   ],
-  captcha: [
+  captcha: useAdvancedCaptcha.value ? [] : [
     { required: true, message: '请输入验证码', trigger: 'blur' },
     { len: 4, message: '验证码长度为4位', trigger: 'blur' }
   ]
-}
+}))
 
 const captchaCanvas = ref()
 const captchaText = ref('')
+
+// 高级验证码回调
+const onAdvancedCaptchaSuccess = () => {
+  advancedCaptchaVerified.value = true
+}
+
+const onAdvancedCaptchaFail = () => {
+  advancedCaptchaVerified.value = false
+}
 
 const isMaintenanceActive = computed(() => {
   return maintenanceStore.isMaintenanceActive()
@@ -306,11 +348,31 @@ const handleLogin = async () => {
   
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
-      // 验证验证码
-      if (!validateCaptcha(loginForm.captcha)) {
-        ElMessage.error('验证码错误，请重新输入')
+      // 防火墙登录保护检查
+      const loginProtection = checkLoginProtection(loginForm.username)
+      if (!loginProtection.allowed) {
+        ElMessage.error(loginProtection.reason || '登录被限制')
+        if (loginProtection.remainingMinutes) {
+          ElMessage.warning(`剩余 ${loginProtection.remainingMinutes} 分钟后可重试`)
+        }
         refreshCaptcha()
         return
+      }
+      
+      // 验证验证码
+      if (useAdvancedCaptcha.value) {
+        // 使用高级验证码
+        if (!advancedCaptchaVerified.value) {
+          ElMessage.error('请完成安全验证')
+          return
+        }
+      } else {
+        // 使用简单验证码
+        if (!validateCaptcha(loginForm.captcha)) {
+          ElMessage.error('验证码错误，请重新输入')
+          refreshCaptcha()
+          return
+        }
       }
       
       loading.value = true
@@ -323,6 +385,8 @@ const handleLogin = async () => {
         })
         
         if (result.success) {
+          // 登录成功，清除登录失败记录
+          clearLoginAttempts(loginForm.username)
           // 登录成功
           if (result.isAdmin) {
             ElMessage.success('管理员登录成功')
@@ -349,9 +413,17 @@ const handleLogin = async () => {
           // 跳转到安全验证页面
           router.push('/security-verification')
         } else {
-          // 登录失败
+          // 登录失败，记录失败尝试
+          recordLoginFailure(loginForm.username)
           ElMessage.error(result.message || '登录失败')
-          refreshCaptcha()
+          if (useAdvancedCaptcha.value) {
+            if (advancedCaptchaRef.value) {
+              advancedCaptchaRef.value.refresh()
+              advancedCaptchaVerified.value = false
+            }
+          } else {
+            refreshCaptcha()
+          }
         }
       } finally {
         loading.value = false
@@ -363,6 +435,21 @@ const handleLogin = async () => {
 onMounted(() => {
   // 检查维护模式状态
   maintenanceStore.checkMaintenanceMode()
+  
+  // 检查是否因为账户被禁用而重定向
+  if (route.query.disabled === 'true') {
+    ElMessage.warning('您的账户已被禁用，请联系管理员')
+    // 清除查询参数
+    router.replace({ path: '/login', query: {} })
+  }
+  
+  // 检查是否因为注册被禁用而重定向
+  if (route.query.registrationDisabled === 'true') {
+    ElMessage.warning('系统当前不允许新用户注册，请联系管理员')
+    // 清除查询参数
+    router.replace({ path: '/login', query: {} })
+  }
+  
   // 初始化验证码
   setTimeout(() => {
     generateCaptcha()
@@ -672,6 +759,47 @@ onMounted(() => {
       }
     }
   }
+}
+
+.captcha-mode-switch {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.mode-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.advanced-captcha-field {
+  margin-bottom: 24px;
 }
 
 .form-options {

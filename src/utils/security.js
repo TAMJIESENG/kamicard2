@@ -276,9 +276,9 @@ export class AuditLogger {
     const logs = JSON.parse(localStorage.getItem('audit_logs') || '[]')
     logs.unshift(logEntry)
     
-    // 只保留最近1000条记录
-    if (logs.length > 1000) {
-      logs.splice(1000)
+    // 只保留最近2000条记录
+    if (logs.length > 2000) {
+      logs.splice(2000)
     }
     
     localStorage.setItem('audit_logs', JSON.stringify(logs))
@@ -287,6 +287,51 @@ export class AuditLogger {
     if (import.meta.env.DEV) {
       console.log('🔍 Audit Log:', logEntry)
     }
+  }
+
+  // 记录维护模式操作
+  static logMaintenanceOperation(operation, details = {}) {
+    this.log(`maintenance_${operation}`, {
+      ...details,
+      operation,
+      type: 'maintenance'
+    })
+  }
+
+  // 记录卡密管理操作
+  static logCardOperation(operation, details = {}) {
+    this.log(`card_${operation}`, {
+      ...details,
+      operation,
+      type: 'card_management'
+    })
+  }
+
+  // 记录用户管理操作
+  static logUserOperation(operation, details = {}) {
+    this.log(`user_${operation}`, {
+      ...details,
+      operation,
+      type: 'user_management'
+    })
+  }
+
+  // 记录系统设置操作
+  static logSystemOperation(operation, details = {}) {
+    this.log(`system_${operation}`, {
+      ...details,
+      operation,
+      type: 'system_settings'
+    })
+  }
+
+  // 记录财务操作
+  static logFinanceOperation(operation, details = {}) {
+    this.log(`finance_${operation}`, {
+      ...details,
+      operation,
+      type: 'finance'
+    })
   }
 
   static getCurrentUserId() {

@@ -320,6 +320,40 @@
             {{ viewingUser.email }}
           </el-descriptions-item>
           
+          <el-descriptions-item label="密码">
+            <div class="password-display">
+              <span v-if="showPassword" class="password-text">
+                {{ viewingUser.password || '未设置' }}
+              </span>
+              <span v-else class="password-masked">••••••••</span>
+              <div class="password-actions">
+                <el-button
+                  type="text"
+                  size="small"
+                  @click="showPassword = !showPassword"
+                  class="password-toggle-btn"
+                >
+                  <el-icon>
+                    <View v-if="!showPassword" />
+                    <Hide v-else />
+                  </el-icon>
+                  {{ showPassword ? '隐藏' : '显示' }}
+                </el-button>
+                <el-button
+                  v-if="showPassword && viewingUser.password"
+                  type="text"
+                  size="small"
+                  @click="copyPassword"
+                  class="password-copy-btn"
+                  title="复制密码"
+                >
+                  <el-icon><DocumentCopy /></el-icon>
+                  复制
+                </el-button>
+              </div>
+            </div>
+          </el-descriptions-item>
+          
           <el-descriptions-item label="真实姓名">
             {{ viewingUser.realName || '-' }}
           </el-descriptions-item>
@@ -393,7 +427,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { UserFilled, Search, Refresh } from '@element-plus/icons-vue'
+import { AuditLogger } from '@/utils/security'
+import { UserFilled, Search, Refresh, View, Hide, DocumentCopy } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 
@@ -407,6 +442,7 @@ const editingUser = ref(null)
 const viewingUser = ref(null)
 const balanceUser = ref(null)
 const userFormRef = ref()
+const showPassword = ref(false)
 
 const users = ref([])
 const userHistory = ref([])
@@ -585,6 +621,21 @@ const handleUserSubmit = async () => {
               localStorage.setItem('user_data', JSON.stringify(updatedCurrentUser))
             }
             
+            // 记录用户更新操作
+            AuditLogger.logUserOperation('update', {
+              userId: editingUser.value.id,
+              username: editingUser.value.username,
+              changes: {
+                email: userForm.email,
+                realName: userForm.realName,
+                phone: userForm.phone,
+                role: userForm.role,
+                status: userForm.status,
+                level: userForm.level
+              },
+              operator: 'admin'
+            })
+            
             ElMessage.success('用户更新成功')
           } else {
             ElMessage.error('未找到要编辑的用户')
@@ -618,6 +669,16 @@ const handleUserSubmit = async () => {
           }
           
           allUsers.push(newUser)
+          
+          // 记录用户创建操作
+          AuditLogger.logUserOperation('create', {
+            userId: newUser.id,
+            username: newUser.username,
+            email: newUser.email,
+            role: newUser.role,
+            operator: 'admin'
+          })
+          
           ElMessage.success('用户添加成功')
         }
         
@@ -650,6 +711,13 @@ const resetPassword = async (user) => {
     if (userIndex !== -1) {
       allUsers[userIndex].password = newPassword
       localStorage.setItem('all_users', JSON.stringify(allUsers))
+      
+      // 记录密码重置操作
+      AuditLogger.logUserOperation('reset_password', {
+        userId: user.id,
+        username: user.username,
+        operator: 'admin'
+      })
       
       // 如果修改的是当前登录用户的密码，需要提示重新登录
       const currentUser = JSON.parse(localStorage.getItem('user_data') || '{}')
@@ -701,6 +769,15 @@ const toggleUserStatus = async (user) => {
         }
       }
       
+      // 记录用户状态变更操作
+      AuditLogger.logUserOperation('update_status', {
+        userId: user.id,
+        username: user.username,
+        oldStatus: user.status,
+        newStatus: newStatus,
+        operator: 'admin'
+      })
+      
       // 更新本地显示
       user.status = newStatus
       ElMessage.success(`用户${action}成功`)
@@ -712,8 +789,51 @@ const toggleUserStatus = async (user) => {
   }
 }
 
+const copyPassword = async () => {
+  if (!viewingUser.value?.password) {
+    ElMessage.warning('密码未设置')
+    return
+  }
+  
+  let copySuccess = false
+  
+  try {
+    await navigator.clipboard.writeText(viewingUser.value.password)
+    copySuccess = true
+  } catch (error) {
+    // 如果 clipboard API 不可用，使用备用方法
+    const textArea = document.createElement('textarea')
+    textArea.value = viewingUser.value.password
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      copySuccess = true
+    } catch (err) {
+      copySuccess = false
+    }
+    document.body.removeChild(textArea)
+  }
+  
+  if (copySuccess) {
+    ElMessage.success('密码已复制到剪贴板')
+    
+    // 记录查看密码操作
+    AuditLogger.logUserOperation('view_password', {
+      userId: viewingUser.value.id,
+      username: viewingUser.value.username,
+      operator: 'admin'
+    })
+  } else {
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
+
 const viewUserDetail = (user) => {
   viewingUser.value = user
+  showPassword.value = false // 重置密码显示状态
   
   // 模拟用户操作历史
   userHistory.value = [
@@ -775,6 +895,18 @@ const handleBalanceUpdate = async () => {
     )
     
     if (result.success) {
+      // 记录余额操作
+      AuditLogger.logFinanceOperation('balance_update', {
+        userId: balanceUser.value.id,
+        username: balanceUser.value.username,
+        operationType: balanceForm.operationType,
+        oldBalance: currentBalance,
+        newBalance: newBalance,
+        amount: balanceForm.amount,
+        reason: balanceForm.reason,
+        operator: 'admin'
+      })
+      
       ElMessage.success(result.message)
       
       // 更新本地用户数据
@@ -862,6 +994,45 @@ onMounted(() => {
   }
   
   .user-detail {
+    .password-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .password-text {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        color: #303133;
+        background: #f5f7fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      
+      .password-masked {
+        font-size: 16px;
+        letter-spacing: 2px;
+        color: #909399;
+        font-weight: bold;
+      }
+      
+      .password-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .password-toggle-btn,
+      .password-copy-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+        color: #409eff;
+        
+        &:hover {
+          color: #66b1ff;
+        }
+      }
+    }
+    
     .user-history {
       margin-top: 24px;
       

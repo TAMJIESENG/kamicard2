@@ -8,11 +8,17 @@
             <el-tag type="warning">待处理: {{ pendingCount }}</el-tag>
             <el-tag type="primary">处理中: {{ processingCount }}</el-tag>
             <el-tag type="success">已解决: {{ resolvedCount }}</el-tag>
+            <el-badge :value="realtimeUnreadCount" :hidden="realtimeUnreadCount === 0">
+              <el-tag type="danger">实时消息: {{ realtimeUnreadCount }}</el-tag>
+            </el-badge>
           </div>
         </div>
       </template>
       
-      <!-- 筛选条件 -->
+      <el-tabs v-model="activeTab" type="border-card">
+        <!-- 传统联系表单 -->
+        <el-tab-pane label="联系表单管理" name="form">
+          <!-- 筛选条件 -->
       <div class="filter-bar">
         <el-form :model="filterForm" inline>
           <el-form-item label="状态">
@@ -134,6 +140,13 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
+        </el-tab-pane>
+        
+        <!-- 实时聊天管理 -->
+        <el-tab-pane label="实时聊天管理" name="realtime">
+          <RealtimeChatManagement />
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
     
     <!-- 处理联系对话框 -->
@@ -249,13 +262,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useContactStore } from '@/stores/contact'
 import { Search, Refresh } from '@element-plus/icons-vue'
+import RealtimeChatManagement from './RealtimeChatManagement.vue'
 
 const contactStore = useContactStore()
 
+const activeTab = ref('form')
 const loading = ref(false)
 const replyLoading = ref(false)
 const statusLoading = ref(false)
@@ -266,6 +281,16 @@ const newStatus = ref('')
 const replyFormRef = ref()
 
 const contacts = computed(() => contactStore.contacts)
+
+// 实时聊天未读消息数
+const realtimeUnreadCount = computed(() => {
+  try {
+    const allMessages = JSON.parse(localStorage.getItem('realtime_chat_messages') || '[]')
+    return allMessages.filter(msg => msg.sender === 'admin' && !msg.isRead).length
+  } catch (error) {
+    return 0
+  }
+})
 
 const filterForm = reactive({
   status: '',

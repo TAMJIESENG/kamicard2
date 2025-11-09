@@ -8,15 +8,22 @@
             <div class="user-status">
               <span class="balance-display">余额: ¥{{ (user?.balance || 0).toFixed(2) }}</span>
               <el-tag 
-                :type="userVipInfo.level === 0 ? 'info' : userVipInfo.level === 1 ? 'warning' : ''" 
-                :color="userVipInfo.level === 2 ? '#9333ea' : ''"
+                v-if="userVipInfo.level === 2"
+                color="#9333ea"
+                class="vip-badge"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">
+                  <path d="M6,2L8,6L12,7L8,8L6,12L4,8L0,7L4,6L6,2M12,8L13.5,11L17,12L13.5,13L12,16L10.5,13L7,12L10.5,11L12,8M19,2L20.5,5L24,6L20.5,7L19,10L17.5,7L14,6L17.5,5L19,2Z"/>
+                </svg>
+                {{ userVipInfo.name }}
+              </el-tag>
+              <el-tag 
+                v-else
+                :type="userVipInfo.level === 0 ? 'info' : 'warning'"
                 class="vip-badge"
               >
                 <svg v-if="userVipInfo.level === 1" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">
                   <path d="M5 16L3 14l5.5-5.5L10 10l4-4L16.5 8.5L18 7l3 3-8.5 8.5L8 14l-3 2z"/>
-                </svg>
-                <svg v-else-if="userVipInfo.level === 2" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">
-                  <path d="M6,2L8,6L12,7L8,8L6,12L4,8L0,7L4,6L6,2M12,8L13.5,11L17,12L13.5,13L12,16L10.5,13L7,12L10.5,11L12,8M19,2L20.5,5L24,6L20.5,7L19,10L17.5,7L14,6L17.5,5L19,2Z"/>
                 </svg>
                 {{ userVipInfo.name }}
               </el-tag>
@@ -242,6 +249,11 @@
                   购买卡密
                 </el-button>
                 
+                <el-button type="warning" @click="$router.push('/coupon-claim')" class="action-btn">
+                  <el-icon><Ticket /></el-icon>
+                  领取优惠券
+                </el-button>
+                
                 <el-button type="info" @click="showQueryDialog = true" class="action-btn">
                   <el-icon><Search /></el-icon>
                   查询卡密
@@ -326,7 +338,7 @@ import ContactAdmin from '@/components/ContactAdmin.vue'
 import BalanceRecharge from '@/components/BalanceRecharge.vue'
 import { 
   ArrowDown, Wallet, Key, ShoppingCart, Clock, 
-  Search, User, Service, Setting
+  Search, User, Service, Setting, Ticket
 } from '@element-plus/icons-vue'
 
 const router = useRouter()

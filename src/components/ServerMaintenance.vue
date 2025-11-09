@@ -325,6 +325,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useMaintenanceStore } from '@/stores/maintenance'
+import { AuditLogger } from '@/utils/security'
 import { 
   Tools, CircleCheck, Clock, User, Refresh
 } from '@element-plus/icons-vue'
@@ -459,6 +460,17 @@ const handleMaintenanceToggle = async (value) => {
         description: maintenanceForm.description,
         contact: maintenanceForm.contact
       })
+
+      // 记录安全日志
+      AuditLogger.logMaintenanceOperation('enabled', {
+        title: maintenanceForm.title,
+        reason: maintenanceForm.reason,
+        estimatedDuration: maintenanceForm.estimatedDuration,
+        description: maintenanceForm.description,
+        contact: maintenanceForm.contact,
+        operator: userStore.user.username,
+        operatorId: userStore.user.id
+      })
       
       // 保存维护记录
       const history = JSON.parse(localStorage.getItem('maintenance_history') || '[]')
@@ -472,10 +484,12 @@ const handleMaintenanceToggle = async (value) => {
       ElMessage.success('维护模式已启用')
       loadMaintenanceHistory()
       
-      // 刷新页面以触发路由守卫
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
+      // 提示用户维护模式已启用
+      ElMessage({
+        message: '维护模式已启用，用户将被重定向到维护页面',
+        type: 'success',
+        duration: 3000
+      })
       
     } else {
       // 关闭维护模式
@@ -501,6 +515,14 @@ const handleMaintenanceToggle = async (value) => {
       
       // 使用全局store停止维护模式
       maintenanceStore.stopMaintenance()
+
+      // 记录安全日志
+      AuditLogger.logMaintenanceOperation('disabled', {
+        duration: duration,
+        operator: userStore.user.username,
+        operatorId: userStore.user.id,
+        actualDuration: duration
+      })
       
       // 更新本地状态
       maintenanceStatus.isActive = false
@@ -533,6 +555,17 @@ const updateMaintenanceInfo = async () => {
           estimatedDuration: maintenanceForm.estimatedDuration,
           description: maintenanceForm.description,
           contact: maintenanceForm.contact
+        })
+
+        // 记录安全日志
+        AuditLogger.logMaintenanceOperation('updated', {
+          title: maintenanceForm.title,
+          reason: maintenanceForm.reason,
+          estimatedDuration: maintenanceForm.estimatedDuration,
+          description: maintenanceForm.description,
+          contact: maintenanceForm.contact,
+          operator: userStore.user.username,
+          operatorId: userStore.user.id
         })
         
         // 更新历史记录中的当前记录

@@ -28,8 +28,10 @@
         </div>
         <div class="nav-actions">
           <div class="user-badge">
-            <el-avatar :size="32" class="user-avatar">
-              {{ userStore.user?.username?.charAt(0)?.toUpperCase() || 'U' }}
+            <el-avatar :size="32" :src="userStore.user?.avatar || ''" class="user-avatar">
+              <template v-if="!userStore.user?.avatar">
+                {{ userStore.user?.username?.charAt(0)?.toUpperCase() || 'U' }}
+              </template>
             </el-avatar>
             <span class="user-name">{{ userStore.user?.username || 'Guest' }}</span>
           </div>
@@ -168,7 +170,7 @@
             <div class="card-image-section">
               <div class="image-container">
                 <img 
-                  :src="product.image || '/default-product.jpg'" 
+                  :src="product.image || '/ceshi/default-product.jpg'" 
                   :alt="product.name"
                   @error="handleImageError"
                 />
@@ -387,7 +389,7 @@
             :key="item.id"
             class="cart-item"
           >
-            <img :src="item.image || '/default-product.jpg'" :alt="item.name" class="cart-item-image" />
+            <img :src="item.image || '/ceshi/default-product.jpg'" :alt="item.name" class="cart-item-image" />
             <div class="cart-item-info">
               <h4 class="cart-item-name">{{ item.name }}</h4>
               <div class="cart-item-controls">
@@ -414,10 +416,78 @@
       </div>
       
       <div v-if="cartItems.length > 0" class="cart-footer">
-        <div class="cart-total">
-          <span class="total-label">总计：</span>
-          <span class="total-amount">¥{{ cartTotal.toFixed(2) }}</span>
+        <!-- 优惠券输入区域 -->
+        <div class="cart-coupon-section">
+          <div class="coupon-header">
+            <span class="coupon-label">优惠券</span>
+            <el-button 
+              v-if="selectedCoupon" 
+              type="text" 
+              size="small" 
+              @click="removeCoupon"
+              class="remove-coupon-btn"
+            >
+              移除
+            </el-button>
+          </div>
+          
+          <!-- 已选择的优惠券 -->
+          <div v-if="selectedCoupon" class="selected-coupon-card">
+            <div class="coupon-info">
+              <div class="coupon-name">{{ selectedCoupon.name }}</div>
+              <div class="coupon-code">{{ selectedCoupon.code }}</div>
+            </div>
+            <div class="coupon-discount">
+              -¥{{ couponDiscount.toFixed(2) }}
+            </div>
+          </div>
+          
+          <!-- 优惠券输入 -->
+          <div v-else class="coupon-input-area">
+            <el-input
+              v-model="couponCode"
+              placeholder="输入优惠券代码"
+              size="small"
+              :disabled="couponValidationLoading"
+              @keyup.enter="validateCouponCode"
+            >
+              <template #append>
+                <el-button 
+                  size="small" 
+                  :loading="couponValidationLoading"
+                  @click="validateCouponCode"
+                >
+                  验证
+                </el-button>
+              </template>
+            </el-input>
+            
+            <!-- 验证消息 -->
+            <div v-if="couponValidationMessage" class="coupon-message" :class="{
+              'success': selectedCoupon,
+              'error': !selectedCoupon && couponValidationMessage
+            }">
+              {{ couponValidationMessage }}
+            </div>
+          </div>
         </div>
+        
+        <!-- 价格汇总 -->
+        <div class="cart-total">
+          <div class="total-row">
+            <span class="total-label">商品总价：</span>
+            <span class="total-amount">¥{{ cartTotal.toFixed(2) }}</span>
+          </div>
+          <div v-if="couponDiscount > 0" class="total-row discount-row">
+            <span class="total-label">优惠折扣：</span>
+            <span class="discount-amount">-¥{{ couponDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="total-row final-total">
+            <span class="total-label">应付金额：</span>
+            <span class="final-amount">¥{{ finalPaymentAmount.toFixed(2) }}</span>
+          </div>
+        </div>
+        
         <el-button 
           type="primary" 
           @click="proceedToCheckout"
@@ -445,6 +515,172 @@
       </el-badge>
     </div>
 
+    <!-- 批量购买确认对话框 -->
+    <el-dialog
+      v-model="showBatchPurchaseDialog"
+      title="批量购买确认"
+      width="600px"
+      :close-on-click-modal="false"
+      class="batch-purchase-dialog"
+    >
+      <div class="batch-purchase-content">
+        <div class="purchase-summary">
+          <h4>购买清单</h4>
+          <div class="items-list">
+            <div 
+              v-for="item in cartItems" 
+              :key="item.id"
+              class="purchase-item"
+            >
+              <div class="item-info">
+                <img :src="item.image || '/ceshi/default-product.jpg'" :alt="item.name" class="item-image" />
+                <div class="item-details">
+                  <h5>{{ item.name }}</h5>
+                  <p>单价：¥{{ item.price.toFixed(2) }}</p>
+                </div>
+              </div>
+              <div class="item-quantity">
+                <span>×{{ item.quantity }}</span>
+              </div>
+              <div class="item-total">
+                ¥{{ (item.price * item.quantity).toFixed(2) }}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="payment-summary">
+          <div class="summary-row">
+            <span>商品总价：</span>
+            <span>¥{{ cartTotal.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>优惠折扣：</span>
+            <span class="discount">-¥{{ couponDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row total-row">
+            <span>应付金额：</span>
+            <span class="total-amount">¥{{ finalPaymentAmount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>当前余额：</span>
+            <span class="balance">¥{{ (userStore.user?.balance || 0).toFixed(2) }}</span>
+          </div>
+        </div>
+        
+        <!-- 优惠券选择区域 -->
+        <div class="coupon-section">
+          <h5>优惠券</h5>
+          
+          <!-- 已选择的优惠券 -->
+          <div v-if="selectedCoupon" class="selected-coupon">
+            <div class="coupon-card selected">
+              <div class="coupon-info">
+                <div class="coupon-name">{{ selectedCoupon.name }}</div>
+                <div class="coupon-desc">{{ getCouponDescription(selectedCoupon) }}</div>
+                <div class="coupon-code">代码：{{ selectedCoupon.code }}</div>
+              </div>
+              <div class="coupon-discount">
+                <span class="discount-amount">-¥{{ couponDiscount.toFixed(2) }}</span>
+              </div>
+              <el-button 
+                type="text" 
+                size="small" 
+                @click="removeCoupon"
+                class="remove-coupon-btn"
+              >
+                <el-icon><Close /></el-icon>
+              </el-button>
+            </div>
+          </div>
+          
+          <!-- 优惠券输入 -->
+          <div v-else class="coupon-input-section">
+            <div class="coupon-input-group">
+              <el-input
+                v-model="couponCode"
+                placeholder="请输入优惠券代码"
+                size="large"
+                :disabled="couponValidationLoading"
+                @keyup.enter="validateCouponCode"
+              >
+                <template #append>
+                  <el-button 
+                    type="primary" 
+                    :loading="couponValidationLoading"
+                    @click="validateCouponCode"
+                  >
+                    验证
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
+            
+            <!-- 验证消息 -->
+            <div v-if="couponValidationMessage" class="coupon-message" :class="{
+              'success': selectedCoupon,
+              'error': !selectedCoupon && couponValidationMessage
+            }">
+              {{ couponValidationMessage }}
+            </div>
+            
+            <!-- 可用优惠券列表 -->
+            <div v-if="availableCoupons.length > 0" class="available-coupons">
+              <div class="coupons-title">可用优惠券：</div>
+              <div class="coupons-list">
+                <div 
+                  v-for="coupon in availableCoupons.slice(0, 3)" 
+                  :key="coupon.id"
+                  class="coupon-card available"
+                  @click="selectAvailableCoupon(coupon)"
+                >
+                  <div class="coupon-info">
+                    <div class="coupon-name">{{ coupon.name }}</div>
+                    <div class="coupon-desc">{{ getCouponDescription(coupon) }}</div>
+                    <div class="coupon-code">{{ coupon.code }}</div>
+                  </div>
+                  <div class="coupon-action">
+                    <el-button type="primary" size="small">使用</el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="payment-method">
+          <h5>支付方式</h5>
+          <el-radio-group v-model="selectedPaymentMethod" class="payment-options">
+            <el-radio value="balance" class="payment-option">
+              <div class="payment-method-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.8,10.9c-2.27-0.59-3-1.2-3-2.15c0-1.09,1.01-1.85,2.7-1.85c1.78,0,2.44,0.85,2.5,2.1h2.21c-0.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94,0.42-3.5,1.68-3.5,3.61c0,2.31,1.91,3.46,4.7,4.13c2.5,0.6,3,1.48,3,2.41c0,0.69-0.49,1.79-2.7,1.79c-2.06,0-2.87-0.92-2.98-2.1h-2.2c0.12,2.19,1.76,3.42,3.68,3.83V21h3v-2.15c1.95-0.37,3.5-1.5,3.5-3.55C15.8,12.85,14.07,11.66,11.8,10.9z"/>
+                </svg>
+                <div>
+                  <div class="method-name">余额支付</div>
+                  <div class="balance-info">当前余额：¥{{ (userStore.user?.balance || 0).toFixed(2) }}</div>
+                </div>
+              </div>
+            </el-radio>
+          </el-radio-group>
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showBatchPurchaseDialog = false">取消</el-button>
+          <el-button 
+            type="primary" 
+            :loading="batchPurchaseLoading"
+            @click="confirmBatchPurchase"
+            :disabled="!selectedPaymentMethod"
+          >
+            确认购买
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 商品详情弹窗 -->
     <el-dialog 
       v-model="showProductDetailDialog" 
@@ -460,7 +696,7 @@
           <div class="detail-images">
             <div class="main-image">
               <img 
-                :src="currentDetailImage || currentDetailProduct.image || '/default-product.jpg'" 
+                :src="currentDetailImage || currentDetailProduct.image || '/ceshi/default-product.jpg'" 
                 :alt="currentDetailProduct.name"
                 @error="handleImageError"
               />
@@ -759,7 +995,7 @@
         <!-- 产品信息 -->
         <div class="review-product-info">
           <img 
-            :src="currentReviewProduct.image || '/default-product.jpg'" 
+            :src="currentReviewProduct.image || '/ceshi/default-product.jpg'" 
             :alt="currentReviewProduct.name" 
             class="review-product-image"
           />
@@ -824,7 +1060,7 @@
     <el-dialog v-model="showPurchaseDialog" title="确认购买" width="500px">
       <div v-if="currentProduct" class="purchase-confirmation">
         <div class="product-summary">
-          <img :src="currentProduct.image || '/default-product.jpg'" :alt="currentProduct.name" class="summary-image" />
+          <img :src="currentProduct.image || '/ceshi/default-product.jpg'" :alt="currentProduct.name" class="summary-image" />
           <div class="summary-info">
             <h4>{{ currentProduct.name }}</h4>
             
@@ -895,12 +1131,25 @@
                   -¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).totalSavings.toFixed(2) }}
                 </el-tag>
               </p>
-              <p class="summary-total vip-total">实付：¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).finalTotal.toFixed(2) }}</p>
+              <p v-if="purchaseCouponDiscount > 0" class="summary-coupon-discount">
+                优惠券折扣：
+                <el-tag size="small" type="success" style="margin-left: 8px;">
+                  -¥{{ purchaseCouponDiscount.toFixed(2) }}
+                </el-tag>
+              </p>
+              <p class="summary-total vip-total">实付：¥{{ getPurchaseFinalAmount().toFixed(2) }}</p>
             </div>
             <div v-else>
               <p class="summary-price">单价：¥{{ calculateFinalPrice(currentProduct.price, 1, true).actualPrice.toFixed(2) }}</p>
               <p class="summary-quantity">数量：{{ purchaseQuantity }} 张</p>
-              <p class="summary-total">总计：¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).finalTotal.toFixed(2) }}</p>
+              <p class="summary-subtotal">小计：¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).finalTotal.toFixed(2) }}</p>
+              <p v-if="purchaseCouponDiscount > 0" class="summary-coupon-discount">
+                优惠券折扣：
+                <el-tag size="small" type="success" style="margin-left: 8px;">
+                  -¥{{ purchaseCouponDiscount.toFixed(2) }}
+                </el-tag>
+              </p>
+              <p class="summary-total">总计：¥{{ getPurchaseFinalAmount().toFixed(2) }}</p>
               <div class="vip-promotion">
                 <router-link to="/vip" style="color: #409eff; font-size: 12px;">
                   升级VIP/SVIP享受购买优惠 →
@@ -910,6 +1159,97 @@
           </div>
         </div>
         
+        <!-- 优惠券选择区域 -->
+        <div class="coupon-selection">
+          <h4>优惠券</h4>
+          
+          <!-- 已选择的优惠券 -->
+          <div v-if="selectedPurchaseCoupon" class="selected-coupon-card">
+            <div class="coupon-info">
+              <div class="coupon-name">{{ selectedPurchaseCoupon.name }}</div>
+              <div class="coupon-code">{{ selectedPurchaseCoupon.code }}</div>
+              <div class="coupon-desc">{{ getCouponDescription(selectedPurchaseCoupon) }}</div>
+            </div>
+            <div class="coupon-discount">
+              -¥{{ purchaseCouponDiscount.toFixed(2) }}
+            </div>
+            <el-button 
+              type="text" 
+              size="small" 
+              @click="removePurchaseCoupon"
+              class="remove-coupon-btn"
+            >
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+          
+          <!-- 优惠券输入 -->
+          <div v-else class="coupon-input-section">
+            <div class="coupon-input-group">
+              <el-input
+                v-model="purchaseCouponCode"
+                placeholder="请输入优惠券代码"
+                size="default"
+                :disabled="purchaseCouponValidationLoading"
+                @keyup.enter="validatePurchaseCouponCode"
+              >
+                <template #append>
+                  <el-button 
+                    type="primary" 
+                    :loading="purchaseCouponValidationLoading"
+                    @click="validatePurchaseCouponCode"
+                  >
+                    验证
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
+            
+            <!-- 验证消息 -->
+            <div v-if="purchaseCouponValidationMessage" class="coupon-message" :class="{
+              'success': selectedPurchaseCoupon,
+              'error': !selectedPurchaseCoupon && purchaseCouponValidationMessage
+            }">
+              {{ purchaseCouponValidationMessage }}
+            </div>
+            
+            <!-- 可用优惠券列表 -->
+            <div v-if="availablePurchaseCoupons.length > 0" class="available-coupons">
+              <div class="coupons-title">可用优惠券：</div>
+              <div class="coupons-list">
+                <div 
+                  v-for="coupon in availablePurchaseCoupons.slice(0, 3)" 
+                  :key="coupon.id"
+                  class="coupon-card-modern"
+                  :class="{ 'user-specific': coupon.userId || coupon.userIds?.length }"
+                  @click="selectAvailablePurchaseCoupon(coupon)"
+                >
+                  <div class="coupon-left">
+                    <div class="coupon-icon">
+                      <el-icon><Ticket /></el-icon>
+                    </div>
+                    <div class="coupon-content">
+                      <div class="coupon-name-modern">{{ coupon.name }}</div>
+                      <div class="coupon-desc-modern">{{ getCouponDescription(coupon) }}</div>
+                    </div>
+                  </div>
+                  <div class="coupon-right">
+                    <div class="coupon-discount-badge" :class="getCouponTypeClass(coupon.type)">
+                      {{ getCouponDiscountText(coupon) }}
+                    </div>
+                    <div class="coupon-code-modern">{{ coupon.code }}</div>
+                    <div class="coupon-action-modern">
+                      <el-button type="primary" size="small" circle>
+                        <el-icon><ArrowRight /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="payment-method-selection">
           <h4>选择支付方式：</h4>
           <el-radio-group v-model="selectedPaymentMethod">
@@ -928,14 +1268,14 @@
           </el-radio-group>
           
           <!-- 余额不足提示 -->
-          <div v-if="selectedPaymentMethod === 'balance' && (userStore.user?.balance || 0) < calculateFinalPrice(currentProduct.price, purchaseQuantity, true).finalTotal" class="insufficient-balance">
+          <div v-if="selectedPaymentMethod === 'balance' && (userStore.user?.balance || 0) < getPurchaseFinalAmount()" class="insufficient-balance">
             <el-alert
               title="余额不足"
               type="warning"
               :closable="false"
             >
               <div>
-                <p>需要支付：¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).finalTotal.toFixed(2) }}</p>
+                <p>需要支付：¥{{ getPurchaseFinalAmount().toFixed(2) }}</p>
                 <p>当前余额：¥{{ (userStore.user?.balance || 0).toFixed(2) }}</p>
                 <p>请先充值或选择其他支付方式</p>
               </div>
@@ -960,13 +1300,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useVipStore } from '@/stores/vip'
 import { 
   Search, ShoppingCart, Close, Delete, Money, Wallet, ArrowRight, View,
-  Star, Check, Lock, Setting, Tools, Edit, Plus, UserFilled
+  Star, Check, Lock, Setting, Tools, Edit, Plus, UserFilled, Ticket
 } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
@@ -984,6 +1324,22 @@ const pageSize = ref(12)
 // 购物车状态
 const showCartSidebar = ref(false)
 const cartItems = ref([])
+const showBatchPurchaseDialog = ref(false)
+const batchPurchaseLoading = ref(false)
+
+// 优惠券相关状态
+const availableCoupons = ref([])
+const selectedCoupon = ref(null)
+const couponCode = ref('')
+const couponValidationLoading = ref(false)
+const couponValidationMessage = ref('')
+
+// 立即购买优惠券相关状态
+const availablePurchaseCoupons = ref([])
+const selectedPurchaseCoupon = ref(null)
+const purchaseCouponCode = ref('')
+const purchaseCouponValidationLoading = ref(false)
+const purchaseCouponValidationMessage = ref('')
 
 // 商品详情弹窗
 const showProductDetailDialog = ref(false)
@@ -1172,6 +1528,65 @@ const paginatedProducts = computed(() => {
 
 const cartTotal = computed(() => {
   return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0)
+})
+
+// 优惠券计算逻辑
+const couponDiscount = computed(() => {
+  if (!selectedCoupon.value) return 0
+  
+  const total = cartTotal.value
+  const coupon = selectedCoupon.value
+  
+  if (coupon.type === 'percentage') {
+    // 百分比折扣
+    return Math.min(total * (coupon.value / 100), coupon.maxDiscount || Infinity)
+  } else if (coupon.type === 'fixed') {
+    // 固定金额折扣
+    return Math.min(coupon.value, total)
+  } else if (coupon.type === 'threshold') {
+    // 满减优惠
+    if (total >= coupon.minAmount) {
+      return coupon.discountAmount
+    }
+  }
+  
+  return 0
+})
+
+// 立即购买优惠券计算逻辑
+const purchaseCouponDiscount = computed(() => {
+  if (!selectedPurchaseCoupon.value || !currentProduct.value) return 0
+  
+  const basePrice = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
+  const coupon = selectedPurchaseCoupon.value
+  
+  if (coupon.type === 'percentage') {
+    // 百分比折扣
+    return Math.min(basePrice * (coupon.value / 100), coupon.maxDiscount || Infinity)
+  } else if (coupon.type === 'fixed') {
+    // 固定金额折扣
+    return Math.min(coupon.value, basePrice)
+  } else if (coupon.type === 'threshold') {
+    // 满减优惠
+    if (basePrice >= coupon.minAmount) {
+      return coupon.discountAmount
+    }
+  }
+  
+  return 0
+})
+
+// 立即购买最终金额计算
+const getPurchaseFinalAmount = () => {
+  if (!currentProduct.value) return 0
+  
+  const baseAmount = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
+  return Math.max(0, baseAmount - purchaseCouponDiscount.value)
+}
+
+// 最终支付金额
+const finalPaymentAmount = computed(() => {
+  return Math.max(0, cartTotal.value - couponDiscount.value)
 })
 
 const canProceedPurchase = computed(() => {
@@ -1377,6 +1792,12 @@ const buyNow = (product) => {
   purchaseQuantity.value = product.quantity || 1
   selectedPaymentMethod.value = 'balance'
   selectedCardType.value = null // 重置卡密类型选择
+  
+  // 重置立即购买优惠券状态
+  selectedPurchaseCoupon.value = null
+  purchaseCouponCode.value = ''
+  purchaseCouponValidationMessage.value = ''
+  
   showPurchaseDialog.value = true
   
   // 如果商品有卡密类型，自动选择第一个有库存的类型
@@ -1397,8 +1818,536 @@ const proceedToCheckout = () => {
     return
   }
   
-  // 批量购买逻辑
-  ElMessage.info('批量购买功能开发中...')
+  // 检查用户登录状态
+  if (!userStore.user) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
+  // 检查用户余额是否足够
+  const totalAmount = finalPaymentAmount.value
+  if (userStore.user.balance < totalAmount) {
+    ElMessage.warning(`余额不足，需要 ¥${totalAmount.toFixed(2)}，当前余额 ¥${userStore.user.balance.toFixed(2)}`)
+    return
+  }
+  
+  // 检查库存是否充足
+  for (const item of cartItems.value) {
+    if (item.quantity > item.stock) {
+      ElMessage.warning(`商品 "${item.name}" 库存不足，当前库存：${item.stock}`)
+      return
+    }
+  }
+  
+  // 显示批量购买确认对话框
+  showBatchPurchaseDialog.value = true
+}
+
+// 初始化优惠券数据
+const initializeCoupons = () => {
+  // 从localStorage获取优惠券数据，如果没有则创建示例数据
+  let coupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+  
+  if (coupons.length === 0) {
+    // 创建示例优惠券（公开优惠券）
+    coupons = [
+      {
+        id: 'coupon_001',
+        code: 'WELCOME10',
+        name: '新用户优惠券',
+        description: '新用户专享，全场9折优惠',
+        type: 'percentage',
+        value: 10, // 10%折扣
+        maxDiscount: 50, // 最大折扣50元
+        minAmount: 0,
+        validFrom: new Date().toISOString(),
+        validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30天后过期
+        usageLimit: 100,
+        usedCount: 0,
+        isActive: true,
+        applicableProducts: [], // 空数组表示适用于所有商品
+        applicableZones: [], // 空数组表示适用于所有专区
+        isPublic: true, // 公开优惠券
+        userId: null, // 无指定用户
+        userIds: null // 无指定用户列表
+      },
+      {
+        id: 'coupon_002',
+        code: 'SAVE20',
+        name: '满减优惠券',
+        description: '满100减20，满200减50',
+        type: 'threshold',
+        minAmount: 100,
+        discountAmount: 20,
+        validFrom: new Date().toISOString(),
+        validTo: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60天后过期
+        usageLimit: 50,
+        usedCount: 0,
+        isActive: true,
+        applicableProducts: [],
+        applicableZones: [],
+        isPublic: true,
+        userId: null,
+        userIds: null
+      },
+      {
+        id: 'coupon_003',
+        code: 'FIXED15',
+        name: '固定折扣券',
+        description: '立减15元',
+        type: 'fixed',
+        value: 15,
+        minAmount: 30,
+        validFrom: new Date().toISOString(),
+        validTo: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), // 15天后过期
+        usageLimit: 200,
+        usedCount: 0,
+        isActive: true,
+        applicableProducts: [],
+        applicableZones: [],
+        isPublic: true,
+        userId: null,
+        userIds: null
+      }
+    ]
+    localStorage.setItem('coupons', JSON.stringify(coupons))
+  }
+  
+  const currentUserId = userStore.user?.id
+  const currentUserIdStr = currentUserId ? String(currentUserId) : null
+  
+  // 购物车优惠券：公开的或用户专属的
+  availableCoupons.value = coupons.filter(coupon => {
+    if (!coupon.isActive || new Date(coupon.validTo) <= new Date() || coupon.usedCount >= coupon.usageLimit) {
+      return false
+    }
+    // 公开优惠券或用户专属优惠券（统一转换为字符串比较）
+    if (coupon.isPublic) {
+      return true
+    }
+    if (currentUserIdStr) {
+      const couponUserId = coupon.userId ? String(coupon.userId) : null
+      if (couponUserId === currentUserIdStr) {
+        return true
+      }
+      if (coupon.userIds && Array.isArray(coupon.userIds)) {
+        return coupon.userIds.map(String).includes(currentUserIdStr)
+      }
+    }
+    return false
+  })
+  
+  // 立即购买优惠券：同样的逻辑
+  availablePurchaseCoupons.value = coupons.filter(coupon => {
+    if (!coupon.isActive || new Date(coupon.validTo) <= new Date() || coupon.usedCount >= coupon.usageLimit) {
+      return false
+    }
+    // 公开优惠券或用户专属优惠券（统一转换为字符串比较）
+    if (coupon.isPublic) {
+      return true
+    }
+    if (currentUserIdStr) {
+      const couponUserId = coupon.userId ? String(coupon.userId) : null
+      if (couponUserId === currentUserIdStr) {
+        return true
+      }
+      if (coupon.userIds && Array.isArray(coupon.userIds)) {
+        return coupon.userIds.map(String).includes(currentUserIdStr)
+      }
+    }
+    return false
+  })
+}
+
+// 验证优惠券代码
+const validateCouponCode = async () => {
+  if (!couponCode.value.trim()) {
+    couponValidationMessage.value = '请输入优惠券代码'
+    return false
+  }
+  
+  couponValidationLoading.value = true
+  couponValidationMessage.value = ''
+  
+  try {
+    // 从所有优惠券中查找（包括专属优惠券）
+    const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+    const coupon = allCoupons.find(c => 
+      c.code.toUpperCase() === couponCode.value.toUpperCase()
+    )
+    
+    if (!coupon) {
+      couponValidationMessage.value = '优惠券不存在或已失效'
+      return false
+    }
+    
+    // 检查专属优惠券权限（统一转换为字符串比较）
+    const currentUserId = userStore.user?.id
+    const currentUserIdStr = currentUserId ? String(currentUserId) : null
+    if (!coupon.isPublic) {
+      const couponUserId = coupon.userId ? String(coupon.userId) : null
+      const hasPermission = couponUserId === currentUserIdStr || 
+                           (coupon.userIds && Array.isArray(coupon.userIds) && coupon.userIds.map(String).includes(currentUserIdStr))
+      if (!hasPermission) {
+        couponValidationMessage.value = '您无权使用此专属优惠券'
+        return false
+      }
+    }
+    
+    // 检查使用限制
+    if (coupon.usedCount >= coupon.usageLimit) {
+      couponValidationMessage.value = '优惠券使用次数已达上限'
+      return false
+    }
+    
+    // 检查有效期
+    const now = new Date()
+    if (now < new Date(coupon.validFrom) || now > new Date(coupon.validTo)) {
+      couponValidationMessage.value = '优惠券已过期'
+      return false
+    }
+    
+    // 检查最低消费金额
+    if (coupon.minAmount && cartTotal.value < coupon.minAmount) {
+      couponValidationMessage.value = `订单金额需满¥${coupon.minAmount}才能使用此优惠券`
+      return false
+    }
+    
+    // 检查适用商品
+    if (coupon.applicableProducts.length > 0) {
+      const hasApplicableProduct = cartItems.value.some(item => 
+        coupon.applicableProducts.includes(item.id)
+      )
+      if (!hasApplicableProduct) {
+        couponValidationMessage.value = '此优惠券不适用于购物车中的商品'
+        return false
+      }
+    }
+    
+    // 检查适用专区
+    if (coupon.applicableZones.length > 0) {
+      const hasApplicableZone = cartItems.value.some(item => 
+        coupon.applicableZones.includes(item.zoneId)
+      )
+      if (!hasApplicableZone) {
+        couponValidationMessage.value = '此优惠券不适用于购物车中的商品专区'
+        return false
+      }
+    }
+    
+    // 验证通过
+    selectedCoupon.value = coupon
+    couponValidationMessage.value = `优惠券验证成功！${coupon.description}`
+    return true
+    
+  } catch (error) {
+    console.error('优惠券验证出错:', error)
+    couponValidationMessage.value = '优惠券验证失败，请重试'
+    return false
+  } finally {
+    couponValidationLoading.value = false
+  }
+}
+
+// 移除优惠券
+const removeCoupon = () => {
+  selectedCoupon.value = null
+  couponCode.value = ''
+  couponValidationMessage.value = ''
+}
+
+// 获取优惠券折扣描述
+const getCouponDescription = (coupon) => {
+  if (coupon.type === 'percentage') {
+    return `${coupon.value}%折扣${coupon.maxDiscount ? `，最高减¥${coupon.maxDiscount}` : ''}`
+  } else if (coupon.type === 'fixed') {
+    return `立减¥${coupon.value}`
+  } else if (coupon.type === 'threshold') {
+    return `满¥${coupon.minAmount}减¥${coupon.discountAmount}`
+  }
+  return coupon.description
+}
+
+// 获取优惠券折扣文本（用于显示）
+const getCouponDiscountText = (coupon) => {
+  if (coupon.type === 'percentage') {
+    return `-${coupon.value}%`
+  } else if (coupon.type === 'fixed') {
+    return `-¥${coupon.value}`
+  } else if (coupon.type === 'threshold') {
+    return `-¥${coupon.discountAmount}`
+  }
+  return '-¥0'
+}
+
+// 获取优惠券类型样式类
+const getCouponTypeClass = (type) => {
+  const typeMap = {
+    'percentage': 'type-percentage',
+    'fixed': 'type-fixed',
+    'threshold': 'type-threshold'
+  }
+  return typeMap[type] || 'type-default'
+}
+
+// 选择可用优惠券
+const selectAvailableCoupon = (coupon) => {
+  // 检查优惠券是否可用
+  if (coupon.minAmount && cartTotal.value < coupon.minAmount) {
+    ElMessage.warning(`订单金额需满¥${coupon.minAmount}才能使用此优惠券`)
+    return
+  }
+  
+  selectedCoupon.value = coupon
+  couponCode.value = coupon.code
+  couponValidationMessage.value = `已选择优惠券：${coupon.name}`
+}
+
+// 立即购买优惠券相关方法
+const validatePurchaseCouponCode = async () => {
+  if (!purchaseCouponCode.value.trim()) {
+    purchaseCouponValidationMessage.value = '请输入优惠券代码'
+    return false
+  }
+  
+  purchaseCouponValidationLoading.value = true
+  purchaseCouponValidationMessage.value = ''
+  
+  try {
+    // 从所有优惠券中查找（包括专属优惠券）
+    const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+    const coupon = allCoupons.find(c => 
+      c.code.toUpperCase() === purchaseCouponCode.value.toUpperCase()
+    )
+    
+    if (!coupon) {
+      purchaseCouponValidationMessage.value = '优惠券不存在或已失效'
+      return false
+    }
+    
+    // 检查专属优惠券权限（统一转换为字符串比较）
+    const currentUserId = userStore.user?.id
+    const currentUserIdStr = currentUserId ? String(currentUserId) : null
+    if (!coupon.isPublic) {
+      const couponUserId = coupon.userId ? String(coupon.userId) : null
+      const hasPermission = couponUserId === currentUserIdStr || 
+                           (coupon.userIds && Array.isArray(coupon.userIds) && coupon.userIds.map(String).includes(currentUserIdStr))
+      if (!hasPermission) {
+        purchaseCouponValidationMessage.value = '您无权使用此专属优惠券'
+        return false
+      }
+    }
+    
+    // 检查使用限制
+    if (coupon.usedCount >= coupon.usageLimit) {
+      purchaseCouponValidationMessage.value = '优惠券使用次数已达上限'
+      return false
+    }
+    
+    // 检查最低消费金额
+    const currentAmount = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
+    if (coupon.minAmount && currentAmount < coupon.minAmount) {
+      purchaseCouponValidationMessage.value = `订单金额需满¥${coupon.minAmount}才能使用此优惠券`
+      return false
+    }
+    
+    // 验证成功
+    selectedPurchaseCoupon.value = coupon
+    purchaseCouponValidationMessage.value = `优惠券验证成功：${coupon.name}`
+    ElMessage.success('优惠券验证成功')
+    return true
+    
+  } catch (error) {
+    console.error('验证优惠券失败:', error)
+    purchaseCouponValidationMessage.value = '验证失败，请重试'
+    return false
+  } finally {
+    purchaseCouponValidationLoading.value = false
+  }
+}
+
+const removePurchaseCoupon = () => {
+  selectedPurchaseCoupon.value = null
+  purchaseCouponCode.value = ''
+  purchaseCouponValidationMessage.value = ''
+}
+
+const selectAvailablePurchaseCoupon = (coupon) => {
+  // 检查优惠券是否可用
+  const currentAmount = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
+  if (coupon.minAmount && currentAmount < coupon.minAmount) {
+    ElMessage.warning(`订单金额需满¥${coupon.minAmount}才能使用此优惠券`)
+    return
+  }
+  
+  selectedPurchaseCoupon.value = coupon
+  purchaseCouponCode.value = coupon.code
+  purchaseCouponValidationMessage.value = `已选择优惠券：${coupon.name}`
+}
+
+// 确认批量购买
+const confirmBatchPurchase = async () => {
+  if (!selectedPaymentMethod.value) {
+    ElMessage.warning('请选择支付方式')
+    return
+  }
+  
+  batchPurchaseLoading.value = true
+  
+  try {
+    // 批量购买逻辑
+    const purchaseResults = []
+    let successCount = 0
+    let failCount = 0
+    
+    for (const item of cartItems.value) {
+      try {
+        // 为每个商品生成卡密
+        const cards = await generateCardsForPurchase(item.id, item.quantity)
+        
+        if (cards.length === item.quantity) {
+          // 更新卡密状态为已购买
+          const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
+          const updatedCards = allCards.map(card => {
+            if (cards.some(purchasedCard => purchasedCard.id === card.id)) {
+              return {
+                ...card,
+                status: 'used',
+                purchasedBy: userStore.user.id,
+                purchasedAt: new Date().toISOString(),
+                purchasePrice: item.price
+              }
+            }
+            return card
+          })
+          localStorage.setItem('all_cards', JSON.stringify(updatedCards))
+          
+          // 计算实际支付金额（考虑优惠券）
+          const itemTotalCost = item.price * item.quantity
+          const itemDiscount = selectedCoupon.value ? 
+            (itemTotalCost / cartTotal.value) * couponDiscount.value : 0
+          const actualCost = itemTotalCost - itemDiscount
+          
+          // 扣除用户余额
+          const updatedUsers = JSON.parse(localStorage.getItem('users') || '[]')
+          const userIndex = updatedUsers.findIndex(u => u.id === userStore.user.id)
+          if (userIndex !== -1) {
+            updatedUsers[userIndex].balance -= actualCost
+            localStorage.setItem('users', JSON.stringify(updatedUsers))
+            
+            // 更新用户store
+            userStore.user.balance -= actualCost
+          }
+          
+          // 记录购买记录
+          const purchaseRecord = {
+            id: Date.now() + Math.random(),
+            userId: userStore.user.id,
+            productId: item.id,
+            productName: item.name,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            originalPrice: itemTotalCost,
+            discountAmount: itemDiscount,
+            totalPrice: actualCost,
+            cards: cards,
+            purchaseTime: new Date().toISOString(),
+            paymentMethod: selectedPaymentMethod.value,
+            couponUsed: selectedCoupon.value ? {
+              id: selectedCoupon.value.id,
+              code: selectedCoupon.value.code,
+              name: selectedCoupon.value.name,
+              discountAmount: itemDiscount
+            } : null
+          }
+          
+          const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]')
+          existingOrders.push(purchaseRecord)
+          localStorage.setItem('orders', JSON.stringify(existingOrders))
+          
+          // 更新优惠券使用次数
+          if (selectedCoupon.value) {
+            const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+            const couponIndex = allCoupons.findIndex(c => c.id === selectedCoupon.value.id)
+            if (couponIndex !== -1) {
+              allCoupons[couponIndex].usedCount += 1
+              localStorage.setItem('coupons', JSON.stringify(allCoupons))
+            }
+          }
+          
+          purchaseResults.push({
+            product: item.name,
+            success: true,
+            cards: cards,
+            message: `成功购买 ${item.quantity} 个 ${item.name}`
+          })
+          
+          successCount++
+        } else {
+          purchaseResults.push({
+            product: item.name,
+            success: false,
+            message: `库存不足，只能购买 ${cards.length} 个`
+          })
+          failCount++
+        }
+      } catch (error) {
+        console.error(`购买 ${item.name} 失败:`, error)
+        purchaseResults.push({
+          product: item.name,
+          success: false,
+          message: `购买失败：${error.message}`
+        })
+        failCount++
+      }
+    }
+    
+    // 显示购买结果
+    if (successCount > 0) {
+      ElMessage.success(`批量购买完成！成功购买 ${successCount} 个商品`)
+      
+      // 清空购物车
+      cartItems.value = []
+      showCartSidebar.value = false
+      showBatchPurchaseDialog.value = false
+      
+      // 刷新产品数据
+      await loadProducts()
+      
+      // 显示购买详情
+      setTimeout(() => {
+        showPurchaseResults(purchaseResults)
+      }, 1000)
+    } else {
+      ElMessage.error('批量购买失败，请重试')
+    }
+    
+  } catch (error) {
+    console.error('批量购买出错:', error)
+    ElMessage.error('批量购买失败，请重试')
+  } finally {
+    batchPurchaseLoading.value = false
+  }
+}
+
+// 显示购买结果详情
+const showPurchaseResults = (results) => {
+  const successResults = results.filter(r => r.success)
+  const failResults = results.filter(r => !r.success)
+  
+  let message = ''
+  if (successResults.length > 0) {
+    message += `成功购买：\n${successResults.map(r => `• ${r.message}`).join('\n')}\n\n`
+  }
+  if (failResults.length > 0) {
+    message += `购买失败：\n${failResults.map(r => `• ${r.message}`).join('\n')}`
+  }
+  
+  ElMessageBox.alert(message, '购买结果', {
+    confirmButtonText: '确定',
+    type: successResults.length > 0 ? 'success' : 'error'
+  })
 }
 
 // 选择卡密类型
@@ -1551,36 +2500,62 @@ const confirmPurchase = async () => {
     // 模拟购买处理
     await new Promise(resolve => setTimeout(resolve, 1500))
     
+    // 检查系统设置：是否自动审核订单
+    const systemSettings = JSON.parse(localStorage.getItem('system_settings') || '{}')
+    const autoApproveOrders = systemSettings.autoApproveOrders !== false // 默认为true
+    
     // 使用VIP折扣计算最终价格
     const priceInfo = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true)
-    const totalCost = priceInfo.finalTotal
+    const couponDiscountAmount = purchaseCouponDiscount.value
+    const totalCost = Math.max(0, priceInfo.finalTotal - couponDiscountAmount)
     const orderNumber = generateOrderNumber()
     const purchaseTime = new Date().toLocaleString('zh-CN')
+    
+    // 生成订单ID（手动审核时需要提前生成以便预留卡密）
+    const orderId = Date.now()
     
     // 取出需要的卡密数量
     const purchasedCards = availableCards.slice(0, purchaseQuantity.value)
     console.log('💳 取出卡密:', purchasedCards.map(c => c.cardNumber))
     
-    // 更新这些卡密的状态为已购买
-    const cardIndices = []
-    purchasedCards.forEach(purchasedCard => {
-      const cardIndex = allCards.findIndex(card => card.id === purchasedCard.id)
-      if (cardIndex !== -1) {
-        allCards[cardIndex].status = 'sold'
-        allCards[cardIndex].purchasedBy = userStore.user.id
-        allCards[cardIndex].purchaser = userStore.user.username
-        allCards[cardIndex].purchaseTime = purchaseTime
-        cardIndices.push(cardIndex)
-      }
-    })
-    
-    // 保存更新后的卡密数据
-    localStorage.setItem('all_cards', JSON.stringify(allCards))
-    console.log('✅ 已更新', cardIndices.length, '张卡密状态为已购买')
+    // 只有自动审核时才更新卡密状态为已购买
+    if (autoApproveOrders) {
+      const cardIndices = []
+      purchasedCards.forEach(purchasedCard => {
+        const cardIndex = allCards.findIndex(card => card.id === purchasedCard.id)
+        if (cardIndex !== -1) {
+          allCards[cardIndex].status = 'sold'
+          allCards[cardIndex].purchasedBy = userStore.user.id
+          allCards[cardIndex].purchaser = userStore.user.username
+          allCards[cardIndex].purchaseTime = purchaseTime
+          cardIndices.push(cardIndex)
+        }
+      })
+      
+      // 保存更新后的卡密数据
+      localStorage.setItem('all_cards', JSON.stringify(allCards))
+      console.log('✅ 已更新', cardIndices.length, '张卡密状态为已购买')
+    } else {
+      // 如果手动审核，将卡密标记为预留状态
+      const cardIndices = []
+      purchasedCards.forEach(purchasedCard => {
+        const cardIndex = allCards.findIndex(card => card.id === purchasedCard.id)
+        if (cardIndex !== -1) {
+          allCards[cardIndex].status = 'reserved' // 预留状态，等待审核
+          allCards[cardIndex].reservedBy = userStore.user.id
+          allCards[cardIndex].reservedOrderId = orderId // 使用订单ID
+          cardIndices.push(cardIndex)
+        }
+      })
+      
+      // 保存更新后的卡密数据
+      localStorage.setItem('all_cards', JSON.stringify(allCards))
+      console.log('⏳ 已预留', cardIndices.length, '张卡密等待审核')
+    }
     
     // 创建订单记录
     const order = {
-      id: Date.now(),
+      id: orderId,
       orderNumber,
       userId: userStore.user.id,
       username: userStore.user.username,
@@ -1594,13 +2569,16 @@ const confirmPurchase = async () => {
       totalAmount: totalCost, // 实际支付金额
       discount: priceInfo.discount, // 折扣率
       savings: priceInfo.totalSavings, // 节省金额
+      couponDiscount: couponDiscountAmount, // 优惠券折扣金额
+      couponCode: selectedPurchaseCoupon.value?.code || '', // 优惠券代码
+      couponName: selectedPurchaseCoupon.value?.name || '', // 优惠券名称
       userLevel: user.value?.level || '普通', // 用户等级
       paymentMethod: selectedPaymentMethod.value,
-      status: 'completed',
+      status: autoApproveOrders ? 'completed' : 'pending', // 根据系统设置决定订单状态
       createTime: purchaseTime,
-      completeTime: purchaseTime,
-      cardKeys: purchasedCards.map(card => card.cardNumber), // 使用真实的卡号
-      cardIds: purchasedCards.map(card => card.id), // 保存卡密ID用于后续操作
+      completeTime: autoApproveOrders ? purchaseTime : null, // 只有自动审核时才设置完成时间
+      cardKeys: autoApproveOrders ? purchasedCards.map(card => card.cardNumber) : [], // 只有自动审核时才分配卡密
+      cardIds: autoApproveOrders ? purchasedCards.map(card => card.id) : [], // 保存卡密ID用于后续操作
       cardTypeId: selectedCardType.value?.id || null, // 卡密类型ID
       cardTypeName: selectedCardType.value?.name || null, // 卡密类型名称
       cardTypePrice: selectedCardType.value?.price || null // 卡密类型价格
@@ -1610,6 +2588,17 @@ const confirmPurchase = async () => {
     const allOrders = JSON.parse(localStorage.getItem('all_orders') || '[]')
     allOrders.unshift(order)
     localStorage.setItem('all_orders', JSON.stringify(allOrders))
+    
+    // 更新优惠券使用次数
+    if (selectedPurchaseCoupon.value) {
+      const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+      const couponIndex = allCoupons.findIndex(c => c.id === selectedPurchaseCoupon.value.id)
+      if (couponIndex !== -1) {
+        allCoupons[couponIndex].usedCount += 1
+        localStorage.setItem('coupons', JSON.stringify(allCoupons))
+        console.log('✅ 优惠券使用次数已更新:', selectedPurchaseCoupon.value.name)
+      }
+    }
     
     // 如果使用余额支付，扣除余额
     if (selectedPaymentMethod.value === 'balance') {
@@ -1625,10 +2614,31 @@ const confirmPurchase = async () => {
     // 重新加载数据以更新库存显示
     loadData()
     
-    // 显示购买成功消息，包含VIP优惠信息
-    const successMessage = priceInfo.hasDiscount 
-      ? `购买成功！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
-      : `购买成功！实付¥${totalCost.toFixed(2)}`
+    // 显示购买成功消息，包含VIP优惠和优惠券信息
+    let successMessage = ''
+    if (autoApproveOrders) {
+      // 自动审核订单 - 立即完成
+      if (priceInfo.hasDiscount && couponDiscountAmount > 0) {
+        successMessage = `购买成功！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，优惠券省了¥${couponDiscountAmount.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
+      } else if (priceInfo.hasDiscount) {
+        successMessage = `购买成功！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
+      } else if (couponDiscountAmount > 0) {
+        successMessage = `购买成功！优惠券省了¥${couponDiscountAmount.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
+      } else {
+        successMessage = `购买成功！实付¥${totalCost.toFixed(2)}`
+      }
+    } else {
+      // 手动审核订单 - 等待审核
+      if (priceInfo.hasDiscount && couponDiscountAmount > 0) {
+        successMessage = `订单已提交，等待审核！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，优惠券省了¥${couponDiscountAmount.toFixed(2)}，应付¥${totalCost.toFixed(2)}`
+      } else if (priceInfo.hasDiscount) {
+        successMessage = `订单已提交，等待审核！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，应付¥${totalCost.toFixed(2)}`
+      } else if (couponDiscountAmount > 0) {
+        successMessage = `订单已提交，等待审核！优惠券省了¥${couponDiscountAmount.toFixed(2)}，应付¥${totalCost.toFixed(2)}`
+      } else {
+        successMessage = `订单已提交，等待审核！应付¥${totalCost.toFixed(2)}`
+      }
+    }
     
     ElMessage.success(successMessage)
     showPurchaseDialog.value = false
@@ -1673,13 +2683,13 @@ const showCardKeys = (cardKeys) => {
 }
 
 const handleImageError = (event) => {
-  event.target.src = '/default-product.jpg'
+  event.target.src = '/ceshi/default-product.jpg'
 }
 
 // 商品详情相关方法
 const showProductDetails = (product) => {
   currentDetailProduct.value = product
-  currentDetailImage.value = product.image || '/default-product.jpg'
+  currentDetailImage.value = product.image || '/ceshi/default-product.jpg'
   detailQuantity.value = 1
   activeDetailTab.value = 'details'
   showProductDetailDialog.value = true
@@ -1842,15 +2852,15 @@ const formatTime = (dateString) => {
 
 const getProductImages = (product) => {
   // 返回产品的所有图片，如果没有额外图片就返回主图片
-  const images = [product.image || '/default-product.jpg']
+  const images = [product.image || '/ceshi/default-product.jpg']
   // 可以添加更多产品图片，这里模拟几张图片
   if (product.gallery && product.gallery.length > 0) {
     return [...images, ...product.gallery]
   }
   // 模拟多张图片
   return images.concat([
-    '/default-product.jpg',
-    '/default-product.jpg'
+    '/ceshi/default-product.jpg',
+    '/ceshi/default-product.jpg'
   ].slice(1)) // 避免重复显示相同图片
 }
 
@@ -2000,9 +3010,26 @@ onMounted(() => {
   // 加载专区和商品数据
   loading.value = true
   loadData()
+  
+  // 初始化优惠券数据
+  initializeCoupons()
   setTimeout(() => {
     loading.value = false
   }, 1000)
+})
+
+// 监听用户登录状态和购物车变化，更新优惠券列表
+watch(() => [userStore.user?.id, cartItems.value.length], () => {
+  if (userStore.user?.id) {
+    initializeCoupons()
+  }
+}, { immediate: false })
+
+// 监听购物车总金额变化，更新优惠券列表（因为有些优惠券有最低消费要求）
+watch(() => cartTotal.value, () => {
+  if (userStore.user?.id) {
+    initializeCoupons()
+  }
 })
 </script>
 
@@ -2638,39 +3665,79 @@ onMounted(() => {
         gap: 32px;
         
         .enterprise-product-card {
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(24px);
+          border: 1px solid rgba(15, 23, 42, 0.06);
+          border-radius: 28px;
           overflow: hidden;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
+          box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.05),
+            0 2px 4px -1px rgba(0, 0, 0, 0.03);
           
+          // 添加微妙的渐变边框效果
           &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 2px;
+            background: linear-gradient(135deg, 
+              rgba(99, 102, 241, 0.1) 0%, 
+              rgba(139, 92, 246, 0.1) 50%, 
+              rgba(6, 182, 212, 0.1) 100%);
+            border-radius: 28px;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: xor;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+          }
+          
+          // 添加顶部装饰条
+          &::after {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 6px;
             background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
             transform: scaleX(0);
-            transition: transform 0.3s ease;
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
           }
           
           &:hover {
-            transform: translateY(-8px);
+            transform: translateY(-12px) scale(1.02);
             box-shadow: 
-              0 25px 50px -12px rgba(0, 0, 0, 0.25),
-              0 0 0 1px rgba(99, 102, 241, 0.1);
-            border-color: rgba(99, 102, 241, 0.2);
+              0 32px 64px -12px rgba(0, 0, 0, 0.25),
+              0 0 0 1px rgba(99, 102, 241, 0.15),
+              0 0 40px rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.3);
             
             &::before {
+              opacity: 1;
+            }
+            
+            &::after {
               transform: scaleX(1);
             }
             
             .image-overlay {
               opacity: 1;
+            }
+            
+            .card-image-section {
+              .image-container img {
+                transform: scale(1.08);
+              }
+            }
+            
+            .action-buttons {
+              .enterprise-btn {
+                transform: translateY(-2px);
+              }
             }
           }
           
@@ -2689,20 +3756,35 @@ onMounted(() => {
           
           .card-image-section {
             position: relative;
-            height: 240px;
+            height: 260px;
             overflow: hidden;
+            border-radius: 24px 24px 0 0;
             
             .image-container {
               position: relative;
               width: 100%;
               height: 100%;
-              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+              
+              // 添加微妙的图案背景
+              &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: 
+                  radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+                opacity: 0.8;
+                z-index: 1;
+              }
               
               img {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
-                transition: transform 0.4s ease;
+                transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                z-index: 2;
               }
               
               .image-overlay {
@@ -2796,26 +3878,46 @@ onMounted(() => {
           }
           
           .card-content-section {
-            padding: 32px;
+            padding: 36px;
+            position: relative;
+            
+            // 添加微妙的背景纹理
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: 
+                radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.02) 0%, transparent 50%);
+              pointer-events: none;
+            }
             
             .content-header {
-              margin-bottom: 20px;
+              margin-bottom: 24px;
+              position: relative;
+              z-index: 1;
               
               .product-title-area {
-                margin-bottom: 12px;
+                margin-bottom: 16px;
                 
                 .product-title {
-                  font-size: 20px;
-                  font-weight: 600;
-                  color: #0f172a;
+                  font-size: 22px;
+                  font-weight: 800;
+                  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  background-clip: text;
                   margin: 0;
-                  line-height: 1.3;
-                  letter-spacing: -0.01em;
+                  line-height: 1.2;
+                  letter-spacing: -0.025em;
                 }
                 
                 .title-underline {
-                  height: 2px;
-                  width: 40px;
+                  height: 3px;
+                  width: 50px;
                   background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
                   border-radius: 1px;
                   margin-top: 8px;
@@ -2833,46 +3935,74 @@ onMounted(() => {
             
             .product-summary {
               color: #64748b;
-              font-size: 14px;
+              font-size: 15px;
               line-height: 1.6;
-              margin: 0 0 24px 0;
+              margin: 0 0 28px 0;
               display: -webkit-box;
               -webkit-line-clamp: 2;
+              line-clamp: 2;
               -webkit-box-orient: vertical;
               overflow: hidden;
+              position: relative;
+              z-index: 1;
             }
             
             .product-specifications {
-              margin-bottom: 32px;
+              margin-bottom: 36px;
+              position: relative;
+              z-index: 1;
               
               .spec-grid {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 12px;
+                gap: 16px;
                 
                 .spec-card {
-                  background: #f8fafc;
-                  border: 1px solid #e5e7eb;
-                  border-radius: 12px;
-                  padding: 12px;
+                  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                  border: 1px solid rgba(229, 231, 235, 0.8);
+                  border-radius: 16px;
+                  padding: 20px;
                   text-align: center;
-                  transition: all 0.2s ease;
+                  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                  position: relative;
+                  overflow: hidden;
+                  
+                  // 添加微妙的渐变边框
+                  &::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    padding: 1px;
+                    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+                    border-radius: 16px;
+                    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                    mask-composite: xor;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                  }
                   
                   &:hover {
-                    background: #f1f5f9;
-                    border-color: #d1d5db;
-                    transform: translateY(-1px);
+                    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                    border-color: rgba(99, 102, 241, 0.3);
+                    transform: translateY(-4px) scale(1.02);
+                    box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.2);
+                    
+                    &::before {
+                      opacity: 1;
+                    }
                   }
                   
                   .spec-icon {
-                    font-size: 20px;
-                    margin-bottom: 6px;
+                    font-size: 28px;
+                    margin-bottom: 12px;
+                    display: block;
+                    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
                   }
                   
                   .spec-details {
                     .spec-label {
-                      font-size: 10px;
-                      color: #6b7280;
+                      font-size: 12px;
+                      color: #64748b;
                       font-weight: 500;
                       text-transform: uppercase;
                       letter-spacing: 0.05em;
@@ -3033,23 +4163,144 @@ onMounted(() => {
                 gap: 8px;
                 
                 .enterprise-btn {
-                  border-radius: 12px;
-                  font-weight: 600;
-                  padding: 12px 20px;
+                  border-radius: 16px;
+                  font-weight: 700;
+                  padding: 14px 24px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  gap: 8px;
-                  transition: all 0.3s ease;
+                  gap: 10px;
+                  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                  position: relative;
+                  overflow: hidden;
+                  font-size: 15px;
+                  letter-spacing: 0.025em;
+                  
+                  // 添加光泽效果
+                  &::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+                    transition: left 0.6s ease;
+                  }
+                  
+                  // 添加点击波纹效果
+                  &::after {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 0;
+                    height: 0;
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    transform: translate(-50%, -50%);
+                    transition: width 0.3s ease, height 0.3s ease;
+                  }
                   
                   &.cart-btn {
-                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%);
                     border: none;
+                    box-shadow: 0 4px 12px -4px rgba(99, 102, 241, 0.3);
                     
                     &:hover {
-                      background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
-                      transform: translateY(-2px);
-                      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.25);
+                      background: linear-gradient(135deg, #5855eb 0%, #7c3aed 50%, #2563eb 100%);
+                      transform: translateY(-3px) scale(1.02);
+                      box-shadow: 0 12px 24px -8px rgba(99, 102, 241, 0.4);
+                      
+                      &::before {
+                        left: 100%;
+                      }
+                    }
+                    
+                    &:active {
+                      transform: translateY(-1px) scale(1.01);
+                      
+                      &::after {
+                        width: 300px;
+                        height: 300px;
+                      }
+                    }
+                  }
+                  
+                  &.buy-btn {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+                    border: none;
+                    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.3);
+                    
+                    &:hover {
+                      background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
+                      transform: translateY(-3px) scale(1.02);
+                      box-shadow: 0 12px 24px -8px rgba(16, 185, 129, 0.4);
+                      
+                      &::before {
+                        left: 100%;
+                      }
+                    }
+                    
+                    &:active {
+                      transform: translateY(-1px) scale(1.01);
+                      
+                      &::after {
+                        width: 300px;
+                        height: 300px;
+                      }
+                    }
+                  }
+                  
+                  &.detail-btn {
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                    border: 1px solid #e2e8f0;
+                    color: #64748b;
+                    
+                    &:hover {
+                      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                      border-color: #c7d2fe;
+                      color: #6366f1;
+                      transform: translateY(-2px) scale(1.02);
+                      box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.2);
+                    }
+                  }
+                  
+                  &.review-btn {
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+                    border: none;
+                    box-shadow: 0 4px 12px -4px rgba(245, 158, 11, 0.3);
+                    
+                    &:hover {
+                      background: linear-gradient(135deg, #d97706 0%, #b45309 50%, #92400e 100%);
+                      transform: translateY(-3px) scale(1.02);
+                      box-shadow: 0 12px 24px -8px rgba(245, 158, 11, 0.4);
+                      
+                      &::before {
+                        left: 100%;
+                      }
+                    }
+                    
+                    &:active {
+                      transform: translateY(-1px) scale(1.01);
+                      
+                      &::after {
+                        width: 300px;
+                        height: 300px;
+                      }
+                    }
+                  }
+                  
+                  &:disabled {
+                    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+                    color: #94a3b8;
+                    cursor: not-allowed;
+                    transform: none;
+                    box-shadow: none;
+                    
+                    &::before,
+                    &::after {
+                      display: none;
                     }
                   }
                   
@@ -3797,6 +5048,7 @@ onMounted(() => {
           margin: 0 0 24px 0;
           display: -webkit-box;
           -webkit-line-clamp: 2;
+          line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
           letter-spacing: 0.01em;
@@ -4071,25 +5323,135 @@ onMounted(() => {
       padding: 24px;
       border-top: 1px solid rgba(0, 0, 0, 0.1);
       
-      .cart-total {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+      .cart-coupon-section {
         margin-bottom: 16px;
-        font-size: 18px;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
         
-        .total-label {
-          font-weight: 500;
+        .coupon-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          
+          .coupon-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+          }
+          
+          .remove-coupon-btn {
+            color: #6b7280;
+            font-size: 12px;
+            
+            &:hover {
+              color: #ef4444;
+            }
+          }
         }
         
-        .total-amount {
-          font-weight: 900;
-          color: #00b894;
+        .selected-coupon-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border: 1px solid #0ea5e9;
+          border-radius: 6px;
+          
+          .coupon-info {
+            .coupon-name {
+              font-size: 13px;
+              font-weight: 600;
+              color: #1e293b;
+              margin-bottom: 2px;
+            }
+            
+            .coupon-code {
+              font-size: 11px;
+              color: #64748b;
+              font-family: monospace;
+            }
+          }
+          
+          .coupon-discount {
+            font-size: 14px;
+            font-weight: 700;
+            color: #10b981;
+          }
+        }
+        
+        .coupon-input-area {
+          .coupon-message {
+            margin-top: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            
+            &.success {
+              background: #f0f9ff;
+              color: #0369a1;
+              border: 1px solid #bae6fd;
+            }
+            
+            &.error {
+              background: #fef2f2;
+              color: #dc2626;
+              border: 1px solid #fecaca;
+            }
+          }
+        }
+      }
+      
+      .cart-total {
+        margin-bottom: 16px;
+        
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+          font-size: 14px;
+          
+          &.discount-row {
+            color: #10b981;
+            
+            .discount-amount {
+              font-weight: 600;
+            }
+          }
+          
+          &.final-total {
+            font-size: 16px;
+            font-weight: 700;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 8px;
+            
+            .final-amount {
+              color: #ef4444;
+            }
+          }
+          
+          .total-label {
+            color: #6b7280;
+          }
+          
+          .total-amount {
+            color: #1f2937;
+            font-weight: 600;
+          }
         }
       }
       
       .checkout-btn {
         width: 100%;
+        height: 44px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
       }
     }
   }
@@ -4249,6 +5611,283 @@ onMounted(() => {
           }
         }
         
+        // 优惠券选择样式
+        .coupon-selection {
+          margin: 20px 0;
+          
+          h4 {
+            margin: 0 0 16px 0;
+            color: #333;
+            font-size: 14px;
+          }
+          
+          .selected-coupon-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            
+            .coupon-info {
+              flex: 1;
+              
+              .coupon-name {
+                font-weight: 600;
+                color: #0c4a6e;
+                margin-bottom: 4px;
+              }
+              
+              .coupon-code {
+                font-size: 12px;
+                color: #0369a1;
+                font-family: monospace;
+                margin-bottom: 2px;
+              }
+              
+              .coupon-desc {
+                font-size: 12px;
+                color: #0284c7;
+              }
+            }
+            
+            .coupon-discount {
+              font-weight: 700;
+              color: #dc2626;
+              font-size: 16px;
+              margin-right: 8px;
+            }
+            
+            .remove-coupon-btn {
+              color: #6b7280;
+              
+              &:hover {
+                color: #dc2626;
+              }
+            }
+          }
+          
+          .coupon-input-section {
+            .coupon-input-group {
+              margin-bottom: 8px;
+            }
+            
+            .coupon-message {
+              font-size: 12px;
+              margin-top: 8px;
+              padding: 8px;
+              border-radius: 4px;
+              
+              &.success {
+                background: #d1fae5;
+                color: #065f46;
+                border: 1px solid #a7f3d0;
+              }
+              
+              &.error {
+                background: #fee2e2;
+                color: #991b1b;
+                border: 1px solid #fecaca;
+              }
+            }
+            
+            .available-coupons {
+              margin-top: 16px;
+              
+              .coupons-title {
+                font-size: 12px;
+                color: #6b7280;
+                margin-bottom: 8px;
+              }
+              
+              .coupons-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                
+                .coupon-card-modern {
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  padding: 16px;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  border-radius: 12px;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                  margin-bottom: 12px;
+                  position: relative;
+                  overflow: hidden;
+                  
+                  &::before {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    right: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+                    transition: all 0.3s ease;
+                  }
+                  
+                  &:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+                    
+                    &::before {
+                      top: -30%;
+                      right: -30%;
+                    }
+                  }
+                  
+                  &.user-specific {
+                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+                    
+                    &:hover {
+                      box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
+                    }
+                  }
+                  
+                  .coupon-left {
+                    display: flex;
+                    align-items: center;
+                    flex: 1;
+                    gap: 12px;
+                    
+                    .coupon-icon {
+                      width: 40px;
+                      height: 40px;
+                      background: rgba(255, 255, 255, 0.2);
+                      border-radius: 50%;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: white;
+                      font-size: 20px;
+                    }
+                    
+                    .coupon-content {
+                      .coupon-name-modern {
+                        font-weight: 600;
+                        color: white;
+                        font-size: 15px;
+                        margin-bottom: 4px;
+                      }
+                      
+                      .coupon-desc-modern {
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.9);
+                      }
+                    }
+                  }
+                  
+                  .coupon-right {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 6px;
+                    
+                    .coupon-discount-badge {
+                      padding: 6px 12px;
+                      border-radius: 20px;
+                      background: rgba(255, 255, 255, 0.95);
+                      font-weight: 700;
+                      font-size: 16px;
+                      color: #667eea;
+                      white-space: nowrap;
+                      
+                      &.type-percentage {
+                        color: #667eea;
+                      }
+                      
+                      &.type-fixed {
+                        color: #f5576c;
+                      }
+                      
+                      &.type-threshold {
+                        color: #f093fb;
+                      }
+                    }
+                    
+                    .coupon-code-modern {
+                      font-size: 11px;
+                      color: rgba(255, 255, 255, 0.8);
+                      font-family: monospace;
+                      background: rgba(255, 255, 255, 0.15);
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                    }
+                    
+                    .coupon-action-modern {
+                      .el-button {
+                        background: white;
+                        border: none;
+                        color: #667eea;
+                        
+                        &:hover {
+                          background: rgba(255, 255, 255, 0.9);
+                          color: #764ba2;
+                        }
+                      }
+                    }
+                  }
+                }
+                
+                .coupon-card {
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  padding: 8px 12px;
+                  background: #f9fafb;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                  
+                  &:hover {
+                    background: #f3f4f6;
+                    border-color: #d1d5db;
+                  }
+                  
+                  .coupon-info {
+                    flex: 1;
+                    
+                    .coupon-name {
+                      font-weight: 500;
+                      color: #374151;
+                      font-size: 13px;
+                      margin-bottom: 2px;
+                    }
+                    
+                    .coupon-desc {
+                      font-size: 11px;
+                      color: #6b7280;
+                      margin-bottom: 2px;
+                    }
+                    
+                    .coupon-code {
+                      font-size: 10px;
+                      color: #9ca3af;
+                      font-family: monospace;
+                    }
+                  }
+                  
+                  .coupon-action {
+                    .el-button {
+                      height: 24px;
+                      padding: 0 8px;
+                      font-size: 11px;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        
         // 数量选择样式
         .quantity-selection {
           display: flex;
@@ -4266,6 +5905,22 @@ onMounted(() => {
             font-size: 12px;
             color: #909399;
           }
+        }
+        
+        // 价格显示样式
+        .summary-coupon-discount {
+          margin: 4px 0;
+          color: #059669;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        
+        .summary-subtotal {
+          margin: 4px 0;
+          color: #666;
+          font-size: 14px;
         }
       }
     }
@@ -4841,6 +6496,461 @@ onMounted(() => {
     
     &:hover {
       transform: scale(1.1);
+    }
+  }
+  
+  // 添加全局动画关键帧
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  // 添加页面加载动画
+  .card-purchase {
+    animation: fadeInUp 0.8s ease-out;
+  }
+  
+  // 产品卡片进入动画
+  .enterprise-product-card {
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+    
+    &:nth-child(1) { animation-delay: 0.1s; }
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.3s; }
+    &:nth-child(4) { animation-delay: 0.4s; }
+    &:nth-child(5) { animation-delay: 0.5s; }
+    &:nth-child(6) { animation-delay: 0.6s; }
+  }
+  
+  // 按钮点击反馈动画
+  .enterprise-btn {
+    &:active {
+      animation: bounce 0.6s ease;
+    }
+  }
+  
+  // 加载状态动画
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+  
+  // 成功购买动画
+  .purchase-success {
+    animation: bounce 0.8s ease;
+  }
+  
+  // 库存不足警告动画
+  .limited-stock {
+    animation: pulse 2s infinite;
+    color: #ef4444 !important;
+  }
+  
+  // 悬停时的微妙动画
+  .enterprise-product-card:hover {
+    .spec-card {
+      animation: slideInRight 0.3s ease-out;
+    }
+  }
+}
+// 批量购买对话框样式
+:deep(.batch-purchase-dialog) {
+  .el-dialog {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  
+  .el-dialog__header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+  }
+  
+  .el-dialog__body {
+    padding: 24px;
+  }
+  
+  .el-dialog__footer {
+    padding: 20px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+  }
+}
+
+.batch-purchase-content {
+  .purchase-summary {
+    margin-bottom: 24px;
+    
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0 0 16px 0;
+    }
+    
+    .items-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      
+      .purchase-item {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        .item-info {
+          display: flex;
+          align-items: center;
+          flex: 1;
+          gap: 12px;
+          
+          .item-image {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+          }
+          
+          .item-details {
+            h5 {
+              font-size: 14px;
+              font-weight: 600;
+              color: #1e293b;
+              margin: 0 0 4px 0;
+            }
+            
+            p {
+              font-size: 12px;
+              color: #64748b;
+              margin: 0;
+            }
+          }
+        }
+        
+        .item-quantity {
+          margin: 0 16px;
+          font-size: 14px;
+          color: #64748b;
+          font-weight: 500;
+        }
+        
+        .item-total {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1e293b;
+          min-width: 80px;
+          text-align: right;
+        }
+      }
+    }
+  }
+  
+  .payment-summary {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      &.total-row {
+        font-size: 16px;
+        font-weight: 600;
+        padding-top: 8px;
+        border-top: 1px solid #e2e8f0;
+        margin-top: 8px;
+        
+        .total-amount {
+          color: #ef4444;
+          font-size: 18px;
+        }
+      }
+      
+      .discount {
+        color: #10b981;
+      }
+      
+      .balance {
+        color: #3b82f6;
+        font-weight: 500;
+      }
+    }
+  }
+  
+  .payment-method {
+    h5 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0 0 12px 0;
+    }
+    
+    .payment-options {
+      width: 100%;
+      
+      .payment-option {
+        width: 100%;
+        margin-bottom: 12px;
+        
+        :deep(.el-radio__label) {
+          width: 100%;
+          padding-left: 12px;
+        }
+      }
+    }
+    
+    .payment-method-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        border-color: #3b82f6;
+      }
+      
+      .method-name {
+        font-weight: 500;
+        color: #1e293b;
+      }
+      
+      .balance-info {
+        font-size: 12px;
+        color: #64748b;
+      }
+    }
+  }
+  
+  // 优惠券样式
+  .coupon-section {
+    margin-bottom: 24px;
+    
+    h5 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0 0 16px 0;
+    }
+    
+    .selected-coupon {
+      .coupon-card {
+        &.selected {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border: 2px solid #0ea5e9;
+          position: relative;
+          
+          .remove-coupon-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: #64748b;
+            
+            &:hover {
+              color: #ef4444;
+            }
+          }
+        }
+      }
+    }
+    
+    .coupon-input-section {
+      .coupon-input-group {
+        margin-bottom: 12px;
+        
+        :deep(.el-input-group__append) {
+          .el-button {
+            border-radius: 0 8px 8px 0;
+          }
+        }
+      }
+      
+      .coupon-message {
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        
+        &.success {
+          background: #f0f9ff;
+          color: #0369a1;
+          border: 1px solid #bae6fd;
+        }
+        
+        &.error {
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
+        }
+      }
+      
+      .available-coupons {
+        .coupons-title {
+          font-size: 13px;
+          color: #64748b;
+          margin-bottom: 12px;
+          font-weight: 500;
+        }
+        
+        .coupons-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          
+          .coupon-card {
+            &.available {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              
+              &:hover {
+                border-color: #3b82f6;
+                background: #f0f9ff;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    .coupon-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      
+      .coupon-info {
+        flex: 1;
+        
+        .coupon-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 4px;
+        }
+        
+        .coupon-desc {
+          font-size: 12px;
+          color: #64748b;
+          margin-bottom: 2px;
+        }
+        
+        .coupon-code {
+          font-size: 11px;
+          color: #9ca3af;
+          font-family: monospace;
+        }
+      }
+      
+      .coupon-discount {
+        margin-left: 16px;
+        
+        .discount-amount {
+          font-size: 16px;
+          font-weight: 700;
+          color: #10b981;
+        }
+      }
+      
+      .coupon-action {
+        margin-left: 16px;
+      }
     }
   }
 }

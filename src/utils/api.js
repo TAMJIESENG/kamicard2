@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import Cookies from 'js-cookie'
+import { firewallCheck } from './firewall'
 
 const api = axios.create({
   baseURL: '/api',
@@ -9,6 +10,14 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    // 防火墙检查
+    const firewallResult = firewallCheck(config.url, config.method?.toUpperCase() || 'GET', config.data)
+    
+    if (!firewallResult.allowed) {
+      ElMessage.error(firewallResult.reason || '请求被防火墙拦截')
+      return Promise.reject(new Error(firewallResult.reason || '请求被防火墙拦截'))
+    }
+
     const token = Cookies.get('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

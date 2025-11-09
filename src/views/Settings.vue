@@ -1077,6 +1077,7 @@ import ApiSettings from '@/components/settings/ApiSettings.vue'
 import SystemLogs from '@/components/settings/SystemLogs.vue'
 import BackupSettings from '@/components/settings/BackupSettings.vue'
 import { useSettingsStore } from '@/stores/settings'
+import { AuditLogger } from '@/utils/security'
 import { 
   getLanguageName, 
   getCurrentTime, 
@@ -2074,6 +2075,13 @@ const exportData = async () => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     
+    // 记录数据导出操作
+    AuditLogger.logSystemOperation('data_export', {
+      fileName: a.download,
+      dataSize: JSON.stringify(exportData).length,
+      operator: 'admin'
+    })
+    
     ElMessage.success('数据导出成功')
   } catch (error) {
     console.error('导出数据失败:', error)
@@ -2098,6 +2106,13 @@ const exportSettings = async () => {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    
+    // 记录设置导出操作
+    AuditLogger.logSystemOperation('settings_export', {
+      fileName: a.download,
+      settingsSize: JSON.stringify(data).length,
+      operator: 'admin'
+    })
     
     ElMessage.success('设置导出成功')
   } catch (error) {
@@ -2137,6 +2152,13 @@ const importData = (file) => {
       
       const success = settingsStore.importSettings(data)
       if (success) {
+        // 记录数据导入操作
+        AuditLogger.logSystemOperation('data_import', {
+          fileName: file.name,
+          fileSize: file.size,
+          operator: 'admin'
+        })
+        
         ElMessage.success('数据导入成功')
         // 重新加载数据统计
         loadDataStats()
@@ -2163,6 +2185,12 @@ const clearCache = async () => {
       type: 'warning'
     })
     // 清除缓存逻辑
+    
+    // 记录缓存清除操作
+    AuditLogger.logSystemOperation('cache_clear', {
+      operator: 'admin'
+    })
+    
     ElMessage.success('缓存已清除')
     loadDataStats()
   } catch {
@@ -2330,6 +2358,12 @@ const resetCurrentSection = async () => {
     
     const success = settingsStore.resetSection(activeMenu.value)
     if (success) {
+      // 记录系统设置重置
+      AuditLogger.logSystemOperation('settings_reset', {
+        section: activeMenu.value,
+        operator: 'admin'
+      })
+      
       ElMessage.success('设置已重置')
     } else {
       ElMessage.error('重置失败，请重试')
@@ -2346,6 +2380,17 @@ const saveSettings = async () => {
   try {
     const success = settingsStore.saveSettings()
     if (success) {
+      // 记录系统设置变更
+      AuditLogger.logSystemOperation('settings_save', {
+        settings: {
+          appearance: settings.appearance,
+          notification: settings.notification,
+          privacy: settings.privacy,
+          system: settings.system
+        },
+        operator: 'admin'
+      })
+      
       ElMessage.success('设置已保存')
     } else {
       ElMessage.error('保存失败，请检查浏览器存储权限')

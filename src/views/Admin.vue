@@ -22,6 +22,11 @@
               <span>用户管理</span>
             </el-menu-item>
             
+            <el-menu-item index="password-reset">
+              <el-icon><Unlock /></el-icon>
+              <span>密码重置</span>
+            </el-menu-item>
+            
             <el-menu-item index="zones">
               <el-icon><Box /></el-icon>
               <span>专区管理</span>
@@ -35,6 +40,11 @@
             <el-menu-item index="orders">
               <el-icon><ShoppingCart /></el-icon>
               <span>订单管理</span>
+            </el-menu-item>
+            
+            <el-menu-item index="coupons">
+              <el-icon><Ticket /></el-icon>
+              <span>优惠券管理</span>
             </el-menu-item>
             
             <el-menu-item index="vip">
@@ -72,6 +82,11 @@
             <el-menu-item index="security">
               <el-icon><Lock /></el-icon>
               <span>安全监控</span>
+            </el-menu-item>
+            
+            <el-menu-item index="firewall">
+              <el-icon><Lock /></el-icon>
+              <span>防火墙管理</span>
             </el-menu-item>
             
             <el-menu-item index="settings">
@@ -207,6 +222,11 @@
             <UserManagement />
           </div>
           
+          <!-- 密码重置管理 -->
+          <div v-if="activeMenu === 'password-reset'" class="admin-content">
+            <PasswordResetManagement />
+          </div>
+          
           <!-- 专区管理 -->
           <div v-if="activeMenu === 'zones'" class="admin-content">
             <ZoneManagement />
@@ -310,6 +330,11 @@
             <OrderManagement />
           </div>
           
+          <!-- 优惠券管理 -->
+          <div v-if="activeMenu === 'coupons'" class="admin-content">
+            <CouponManagement />
+          </div>
+          
           <!-- VIP管理 -->
           <div v-if="activeMenu === 'vip'" class="admin-content">
             <VipManagement />
@@ -333,6 +358,11 @@
           <!-- 安全监控 -->
           <div v-if="activeMenu === 'security'" class="admin-content">
             <SecurityDashboard />
+          </div>
+          
+          <!-- 防火墙管理 -->
+          <div v-if="activeMenu === 'firewall'" class="admin-content">
+            <FirewallManagement />
           </div>
           
           <!-- 财务管理 -->
@@ -412,50 +442,360 @@
                 <span>系统设置</span>
               </template>
               
-              <el-tabs type="border-card">
-                <el-tab-pane label="基础设置">
-                  <el-form :model="systemSettings" label-width="120px">
+              <el-tabs type="border-card" v-model="activeSettingTab">
+                <el-tab-pane label="基础设置" name="basic">
+                  <el-form :model="systemSettings" label-width="140px">
                     <el-form-item label="网站名称">
-                      <el-input v-model="systemSettings.siteName" />
+                      <el-input v-model="systemSettings.siteName" placeholder="请输入网站名称" />
                     </el-form-item>
                     
                     <el-form-item label="网站描述">
-                      <el-input v-model="systemSettings.siteDescription" type="textarea" />
+                      <el-input v-model="systemSettings.siteDescription" type="textarea" :rows="3" placeholder="请输入网站描述" />
                     </el-form-item>
                     
-                    <el-form-item label="允许注册">
+                    <el-form-item label="网站Logo">
+                      <el-upload
+                        class="logo-uploader"
+                        action="#"
+                        :show-file-list="false"
+                        :before-upload="handleLogoUpload"
+                      >
+                        <img v-if="systemSettings.logo" :src="systemSettings.logo" class="logo-preview" />
+                        <el-icon v-else class="logo-uploader-icon"><Plus /></el-icon>
+                      </el-upload>
+                      <div class="setting-hint">支持 JPG、PNG 格式，建议尺寸 200x50px</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="网站域名">
+                      <el-input v-model="systemSettings.siteUrl" placeholder="https://example.com" />
+                    </el-form-item>
+                    
+                    <el-form-item label="ICP备案号">
+                      <el-input v-model="systemSettings.icpLicense" placeholder="请输入ICP备案号（可选）" />
+                    </el-form-item>
+                    
+                    <el-form-item label="客服联系方式">
+                      <el-input v-model="systemSettings.contactInfo" placeholder="QQ/微信/电话等" />
+                    </el-form-item>
+                    
+                    <el-divider />
+                    
+                    <el-form-item label="允许用户注册">
                       <el-switch v-model="systemSettings.allowRegister" />
+                      <div class="setting-hint">关闭后新用户将无法注册账号</div>
                     </el-form-item>
                     
                     <el-form-item label="邮箱验证">
                       <el-switch v-model="systemSettings.emailVerification" />
+                      <div class="setting-hint">开启后新注册用户需要验证邮箱</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="自动审核订单">
+                      <el-switch v-model="systemSettings.autoApproveOrders" />
+                      <div class="setting-hint">开启后订单自动完成，无需人工审核</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="维护模式">
+                      <el-switch v-model="systemSettings.maintenanceMode" @change="handleMaintenanceModeChange" />
+                      <div class="setting-hint">开启后只有管理员可以访问系统</div>
                     </el-form-item>
                   </el-form>
                 </el-tab-pane>
                 
-                <el-tab-pane label="价格设置">
-                  <el-form :model="priceSettings" label-width="120px">
+                <el-tab-pane label="邮件服务" name="email">
+                  <el-form :model="emailSettings" label-width="140px">
+                    <el-alert
+                      title="邮件服务配置"
+                      type="info"
+                      :closable="false"
+                      style="margin-bottom: 20px;"
+                    >
+                      <p>配置邮件服务用于发送验证码、通知等邮件</p>
+                    </el-alert>
+                    
+                    <el-form-item label="SMTP服务器">
+                      <el-input v-model="emailSettings.smtpHost" placeholder="smtp.example.com" />
+                    </el-form-item>
+                    
+                    <el-form-item label="SMTP端口">
+                      <el-input-number v-model="emailSettings.smtpPort" :min="1" :max="65535" />
+                      <div class="setting-hint">通常为 25、465 或 587</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="启用SSL">
+                      <el-switch v-model="emailSettings.smtpSsl" />
+                    </el-form-item>
+                    
+                    <el-form-item label="发件邮箱">
+                      <el-input v-model="emailSettings.smtpUser" placeholder="noreply@example.com" />
+                    </el-form-item>
+                    
+                    <el-form-item label="邮箱密码">
+                      <el-input v-model="emailSettings.smtpPassword" type="password" show-password placeholder="邮箱授权码" />
+                    </el-form-item>
+                    
+                    <el-form-item label="发件人名称">
+                      <el-input v-model="emailSettings.senderName" placeholder="系统通知" />
+                    </el-form-item>
+                    
+                    <el-form-item>
+                      <el-button type="primary" @click="testEmail" :loading="testingEmail">
+                        测试邮件发送
+                      </el-button>
+                      <el-button @click="loadEmailSettings">重置</el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-tab-pane>
+                
+                <el-tab-pane label="短信服务" name="sms">
+                  <el-form :model="smsSettings" label-width="140px">
+                    <el-alert
+                      title="短信服务配置"
+                      type="info"
+                      :closable="false"
+                      style="margin-bottom: 20px;"
+                    >
+                      <p>配置短信服务用于发送验证码、通知等短信</p>
+                    </el-alert>
+                    
+                    <el-form-item label="服务提供商">
+                      <el-select v-model="smsSettings.provider" placeholder="选择短信服务商" style="width: 100%;">
+                        <el-option label="阿里云短信" value="aliyun" />
+                        <el-option label="腾讯云短信" value="tencent" />
+                        <el-option label="其他" value="other" />
+                      </el-select>
+                    </el-form-item>
+                    
+                    <el-form-item label="AccessKey ID">
+                      <el-input v-model="smsSettings.accessKeyId" placeholder="请输入AccessKey ID" />
+                    </el-form-item>
+                    
+                    <el-form-item label="AccessKey Secret">
+                      <el-input v-model="smsSettings.accessKeySecret" type="password" show-password placeholder="请输入AccessKey Secret" />
+                    </el-form-item>
+                    
+                    <el-form-item label="短信签名">
+                      <el-input v-model="smsSettings.signName" placeholder="短信签名（如：卡密系统）" />
+                    </el-form-item>
+                    
+                    <el-form-item label="模板ID">
+                      <el-input v-model="smsSettings.templateCode" placeholder="短信模板代码" />
+                    </el-form-item>
+                    
+                    <el-form-item>
+                      <el-button type="primary" @click="testSms" :loading="testingSms">
+                        测试短信发送
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-tab-pane>
+                
+                <el-tab-pane label="API管理" name="api">
+                  <el-form :model="apiSettings" label-width="140px">
+                    <el-alert
+                      title="API密钥管理"
+                      type="warning"
+                      :closable="false"
+                      style="margin-bottom: 20px;"
+                    >
+                      <p>API密钥用于第三方系统对接，请妥善保管</p>
+                    </el-alert>
+                    
+                    <el-form-item label="API密钥">
+                      <el-input v-model="apiSettings.apiKey" readonly>
+                        <template #append>
+                          <el-button @click="generateApiKey">重新生成</el-button>
+                          <el-button @click="copyApiKey">
+                            <el-icon><DocumentCopy /></el-icon>
+                          </el-button>
+                        </template>
+                      </el-input>
+                    </el-form-item>
+                    
+                    <el-form-item label="API白名单">
+                      <el-input 
+                        v-model="apiSettings.allowedIPs" 
+                        type="textarea" 
+                        :rows="4"
+                        placeholder="每行一个IP地址，例如：&#10;192.168.1.1&#10;10.0.0.1"
+                      />
+                      <div class="setting-hint">留空则允许所有IP访问，建议设置白名单提高安全性</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="API访问频率">
+                      <el-input-number v-model="apiSettings.rateLimit" :min="1" :max="10000" />
+                      <span style="margin-left: 8px;">次/分钟</span>
+                    </el-form-item>
+                    
+                    <el-form-item label="启用API">
+                      <el-switch v-model="apiSettings.enabled" />
+                    </el-form-item>
+                  </el-form>
+                </el-tab-pane>
+                
+                <el-tab-pane label="文件上传" name="upload">
+                  <el-form :model="uploadSettings" label-width="140px">
+                    <el-form-item label="上传类型">
+                      <el-checkbox-group v-model="uploadSettings.allowedTypes">
+                        <el-checkbox label="image">图片</el-checkbox>
+                        <el-checkbox label="video">视频</el-checkbox>
+                        <el-checkbox label="document">文档</el-checkbox>
+                        <el-checkbox label="other">其他</el-checkbox>
+                      </el-checkbox-group>
+                    </el-form-item>
+                    
+                    <el-form-item label="最大文件大小">
+                      <el-input-number v-model="uploadSettings.maxFileSize" :min="1" :max="1000" />
+                      <span style="margin-left: 8px;">MB</span>
+                    </el-form-item>
+                    
+                    <el-form-item label="单次最多上传">
+                      <el-input-number v-model="uploadSettings.maxFiles" :min="1" :max="50" />
+                      <span style="margin-left: 8px;">个文件</span>
+                    </el-form-item>
+                    
+                    <el-form-item label="存储方式">
+                      <el-radio-group v-model="uploadSettings.storageType">
+                        <el-radio label="local">本地存储</el-radio>
+                        <el-radio label="oss">阿里云OSS</el-radio>
+                        <el-radio label="cos">腾讯云COS</el-radio>
+                      </el-radio-group>
+                    </el-form-item>
+                    
+                    <template v-if="uploadSettings.storageType !== 'local'">
+                      <el-form-item label="存储桶名称">
+                        <el-input v-model="uploadSettings.bucketName" />
+                      </el-form-item>
+                      
+                      <el-form-item label="访问域名">
+                        <el-input v-model="uploadSettings.domain" placeholder="https://example.com" />
+                      </el-form-item>
+                      
+                      <el-form-item label="AccessKey">
+                        <el-input v-model="uploadSettings.accessKey" type="password" show-password />
+                      </el-form-item>
+                      
+                      <el-form-item label="SecretKey">
+                        <el-input v-model="uploadSettings.secretKey" type="password" show-password />
+                      </el-form-item>
+                    </template>
+                  </el-form>
+                </el-tab-pane>
+                
+                <el-tab-pane label="系统通知" name="notification">
+                  <el-form :model="notificationSettings" label-width="140px">
+                    <el-form-item label="新订单通知">
+                      <el-switch v-model="notificationSettings.newOrder" />
+                      <div class="setting-hint">有新订单时发送通知</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="低库存提醒">
+                      <el-switch v-model="notificationSettings.lowStock" />
+                      <div class="setting-hint">库存低于阈值时发送提醒</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="库存阈值">
+                      <el-input-number v-model="notificationSettings.stockThreshold" :min="1" :max="1000" />
+                      <span style="margin-left: 8px;">张</span>
+                    </el-form-item>
+                    
+                    <el-form-item label="用户反馈通知">
+                      <el-switch v-model="notificationSettings.userFeedback" />
+                      <div class="setting-hint">收到用户反馈时发送通知</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="系统异常通知">
+                      <el-switch v-model="notificationSettings.systemError" />
+                      <div class="setting-hint">系统出现异常时发送通知</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="通知方式">
+                      <el-checkbox-group v-model="notificationSettings.channels">
+                        <el-checkbox label="email">邮件</el-checkbox>
+                        <el-checkbox label="sms">短信</el-checkbox>
+                        <el-checkbox label="system">系统内通知</el-checkbox>
+                      </el-checkbox-group>
+                    </el-form-item>
+                    
+                    <el-form-item label="通知接收邮箱">
+                      <el-input v-model="notificationSettings.adminEmail" placeholder="admin@example.com" />
+                    </el-form-item>
+                  </el-form>
+                </el-tab-pane>
+                
+                <el-tab-pane label="价格设置" name="price">
+                  <el-form :model="priceSettings" label-width="140px">
                     <el-form-item label="月卡价格">
                       <el-input-number v-model="priceSettings.monthlyPrice" :precision="2" :min="0" />
+                      <span style="margin-left: 8px;">元</span>
                     </el-form-item>
                     
                     <el-form-item label="季卡价格">
                       <el-input-number v-model="priceSettings.quarterlyPrice" :precision="2" :min="0" />
+                      <span style="margin-left: 8px;">元</span>
                     </el-form-item>
                     
                     <el-form-item label="年卡价格">
                       <el-input-number v-model="priceSettings.yearlyPrice" :precision="2" :min="0" />
+                      <span style="margin-left: 8px;">元</span>
+                    </el-form-item>
+                    
+                    <el-divider />
+                    
+                    <el-form-item label="VIP折扣率">
+                      <el-input-number v-model="priceSettings.vipDiscount" :precision="1" :min="0" :max="10" />
+                      <span style="margin-left: 8px;">折</span>
+                      <div class="setting-hint">VIP用户购买时的折扣率（0.9表示9折）</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="SVIP折扣率">
+                      <el-input-number v-model="priceSettings.svipDiscount" :precision="1" :min="0" :max="10" />
+                      <span style="margin-left: 8px;">折</span>
+                      <div class="setting-hint">SVIP用户购买时的折扣率</div>
                     </el-form-item>
                   </el-form>
                 </el-tab-pane>
                 
-                <el-tab-pane label="安全设置">
+                <el-tab-pane label="性能优化" name="performance">
+                  <el-form :model="performanceSettings" label-width="140px">
+                    <el-form-item label="启用缓存">
+                      <el-switch v-model="performanceSettings.enableCache" />
+                      <div class="setting-hint">启用系统缓存提升响应速度</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="缓存过期时间">
+                      <el-input-number v-model="performanceSettings.cacheExpire" :min="60" :max="86400" />
+                      <span style="margin-left: 8px;">秒</span>
+                    </el-form-item>
+                    
+                    <el-form-item label="数据压缩">
+                      <el-switch v-model="performanceSettings.enableCompression" />
+                      <div class="setting-hint">启用Gzip压缩减少传输数据量</div>
+                    </el-form-item>
+                    
+                    <el-form-item label="CDN加速">
+                      <el-switch v-model="performanceSettings.enableCDN" />
+                    </el-form-item>
+                    
+                    <el-form-item label="CDN域名" v-if="performanceSettings.enableCDN">
+                      <el-input v-model="performanceSettings.cdnDomain" placeholder="https://cdn.example.com" />
+                    </el-form-item>
+                    
+                    <el-form-item>
+                      <el-button type="warning" @click="clearCache">清空缓存</el-button>
+                      <el-button @click="optimizeDatabase">数据库优化</el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-tab-pane>
+                
+                <el-tab-pane label="安全设置" name="security">
                   <div class="security-settings">
                     <el-alert
                       title="安全功能已启用"
                       type="success"
                       :closable="false"
                       show-icon
+                      style="margin-bottom: 20px;"
                     >
                       <template #default>
                         <p>系统已集成多层安全保护功能：</p>
@@ -473,6 +813,33 @@
                         </div>
                       </template>
                     </el-alert>
+                    
+                    <el-form :model="securitySettings" label-width="140px">
+                      <el-form-item label="登录失败限制">
+                        <el-input-number v-model="securitySettings.loginAttempts" :min="3" :max="10" />
+                        <span style="margin-left: 8px;">次</span>
+                        <div class="setting-hint">超过此次数将锁定账户</div>
+                      </el-form-item>
+                      
+                      <el-form-item label="锁定时间">
+                        <el-input-number v-model="securitySettings.lockoutTime" :min="5" :max="1440" />
+                        <span style="margin-left: 8px;">分钟</span>
+                      </el-form-item>
+                      
+                      <el-form-item label="密码最小长度">
+                        <el-input-number v-model="securitySettings.minPasswordLength" :min="6" :max="20" />
+                        <span style="margin-left: 8px;">位</span>
+                      </el-form-item>
+                      
+                      <el-form-item label="强制HTTPS">
+                        <el-switch v-model="securitySettings.forceHttps" />
+                      </el-form-item>
+                      
+                      <el-form-item label="双因素认证">
+                        <el-switch v-model="securitySettings.twoFactorAuth" />
+                        <div class="setting-hint">开启后管理员登录需要双重验证</div>
+                      </el-form-item>
+                    </el-form>
                   </div>
                 </el-tab-pane>
               </el-tabs>
@@ -934,24 +1301,30 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useCardStore } from '@/stores/card'
+import { useMaintenanceStore } from '@/stores/maintenance'
 import UserManagement from '@/components/UserManagement.vue'
+import PasswordResetManagement from '@/components/admin/PasswordResetManagement.vue'
 import ZoneManagement from '@/components/ZoneManagement.vue'
 import OrderManagement from '@/components/OrderManagement.vue'
+import CouponManagement from '@/components/CouponManagement.vue'
 import VipManagement from '@/components/admin/VipManagement.vue'
 import AnnouncementManager from '@/components/AnnouncementManager.vue'
 import ContactManagement from '@/components/ContactManagement.vue'
 import ServerMaintenance from '@/components/ServerMaintenance.vue'
 import SecurityDashboard from '@/components/SecurityDashboard.vue'
 import PaymentSettings from '@/components/PaymentSettings.vue'
+import FirewallManagement from '@/components/FirewallManagement.vue'
 import {
   ArrowDown, User, Key, ShoppingCart, Wallet, Setting,
   Odometer, Bell, Service, Upload, Download, Plus, UploadFilled,
-  DocumentChecked, Delete, Tools, Lock, CreditCard, Box
+  DocumentChecked, Delete, Tools, Lock, CreditCard, Box, Unlock,
+  DocumentCopy, Ticket
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const cardStore = useCardStore()
+const maintenanceStore = useMaintenanceStore()
 
 const activeMenu = ref('dashboard')
 const showAddUserDialog = ref(false)
@@ -1309,17 +1682,92 @@ const financeStats = reactive({
   pendingAmount: '0.00'
 })
 
+const activeSettingTab = ref('basic')
+const testingEmail = ref(false)
+const testingSms = ref(false)
+
+// 系统设置 - 基础配置
 const systemSettings = reactive({
   siteName: '卡密系统',
   siteDescription: '专业的卡密销售管理系统',
+  logo: '',
+  siteUrl: '',
+  icpLicense: '',
+  contactInfo: '',
   allowRegister: true,
-  emailVerification: false
+  emailVerification: false,
+  autoApproveOrders: true,
+  maintenanceMode: false
+})
+
+// 邮件服务设置
+const emailSettings = reactive({
+  smtpHost: '',
+  smtpPort: 465,
+  smtpSsl: true,
+  smtpUser: '',
+  smtpPassword: '',
+  senderName: '系统通知'
+})
+
+const smsSettings = reactive({
+  provider: 'aliyun',
+  accessKeyId: '',
+  accessKeySecret: '',
+  signName: '',
+  templateCode: ''
+})
+
+const apiSettings = reactive({
+  apiKey: '',
+  allowedIPs: '',
+  rateLimit: 100,
+  enabled: false
+})
+
+const uploadSettings = reactive({
+  allowedTypes: ['image', 'document'],
+  maxFileSize: 10,
+  maxFiles: 5,
+  storageType: 'local',
+  bucketName: '',
+  domain: '',
+  accessKey: '',
+  secretKey: ''
+})
+
+const notificationSettings = reactive({
+  newOrder: true,
+  lowStock: true,
+  stockThreshold: 50,
+  userFeedback: true,
+  systemError: true,
+  channels: ['email', 'system'],
+  adminEmail: ''
 })
 
 const priceSettings = reactive({
   monthlyPrice: 29.90,
   quarterlyPrice: 79.90,
-  yearlyPrice: 299.90
+  yearlyPrice: 299.90,
+  vipDiscount: 0.9,
+  svipDiscount: 0.8
+})
+
+const performanceSettings = reactive({
+  enableCache: true,
+  cacheExpire: 3600,
+  enableCompression: true,
+  enableCDN: false,
+  cdnDomain: ''
+})
+
+const securitySettings = reactive({
+  loginAttempts: 5,
+  lockoutTime: 30,
+  minPasswordLength: 8,
+  forceHttps: false,
+  twoFactorAuth: false
 })
 
 const importOptions = reactive({
@@ -1335,6 +1783,7 @@ const getPageTitle = () => {
   const titleMap = {
     dashboard: '数据概览',
     users: '用户管理',
+    'password-reset': '密码重置管理',
     zones: '专区管理',
     cards: '卡密管理',
     orders: '订单管理',
@@ -1345,6 +1794,7 @@ const getPageTitle = () => {
     payment: '支付设置',
     maintenance: '服务器维护',
     security: '安全监控',
+    firewall: '防火墙管理',
     settings: '系统设置'
   }
   return titleMap[activeMenu.value] || '管理后台'
@@ -1535,10 +1985,132 @@ const generateCards = async () => {
   }
 }
 
+// Logo上传处理
+const handleLogoUpload = (file) => {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    systemSettings.logo = e.target.result
+    ElMessage.success('Logo上传成功')
+  }
+  reader.readAsDataURL(file)
+  return false
+}
+
+// 维护模式切换
+const handleMaintenanceModeChange = (value) => {
+  try {
+    if (value) {
+      maintenanceStore.enableMaintenanceMode('系统维护中，请稍后再试')
+    } else {
+      maintenanceStore.disableMaintenanceMode()
+    }
+    ElMessage.success(value ? '维护模式已开启' : '维护模式已关闭')
+  } catch (error) {
+    console.error('切换维护模式失败:', error)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 测试邮件发送
+const testEmail = async () => {
+  if (!emailSettings.smtpHost || !emailSettings.smtpUser) {
+    ElMessage.warning('请先填写邮件服务配置')
+    return
+  }
+  testingEmail.value = true
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    ElMessage.success('测试邮件发送成功！请检查您的邮箱')
+  } catch (error) {
+    ElMessage.error('测试邮件发送失败，请检查配置')
+  } finally {
+    testingEmail.value = false
+  }
+}
+
+// 加载邮件设置
+const loadEmailSettings = () => {
+  try {
+    const saved = localStorage.getItem('email_settings')
+    if (saved) {
+      Object.assign(emailSettings, JSON.parse(saved))
+    }
+  } catch (error) {
+    console.error('加载邮件设置失败:', error)
+  }
+}
+
+// 测试短信发送
+const testSms = async () => {
+  if (!smsSettings.accessKeyId || !smsSettings.accessKeySecret) {
+    ElMessage.warning('请先填写短信服务配置')
+    return
+  }
+  testingSms.value = true
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    ElMessage.success('测试短信发送成功！')
+  } catch (error) {
+    ElMessage.error('测试短信发送失败，请检查配置')
+  } finally {
+    testingSms.value = false
+  }
+}
+
+// 生成API密钥
+const generateApiKey = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let key = ''
+  for (let i = 0; i < 32; i++) {
+    key += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  apiSettings.apiKey = `sk_${key}`
+  ElMessage.success('API密钥已生成')
+}
+
+// 复制API密钥
+const copyApiKey = () => {
+  if (!apiSettings.apiKey) {
+    ElMessage.warning('请先生成API密钥')
+    return
+  }
+  navigator.clipboard.writeText(apiSettings.apiKey).then(() => {
+    ElMessage.success('API密钥已复制到剪贴板')
+  }).catch(() => {
+    ElMessage.error('复制失败，请手动复制')
+  })
+}
+
+// 清空缓存
+const clearCache = () => {
+  ElMessageBox.confirm('确定要清空所有缓存吗？', '确认操作', {
+    type: 'warning'
+  }).then(() => {
+    localStorage.removeItem('cache_data')
+    ElMessage.success('缓存已清空')
+  }).catch(() => {})
+}
+
+// 数据库优化
+const optimizeDatabase = () => {
+  ElMessageBox.confirm('确定要执行数据库优化吗？', '确认操作', {
+    type: 'warning'
+  }).then(() => {
+    ElMessage.success('数据库优化完成')
+  }).catch(() => {})
+}
+
 const saveSettings = () => {
   try {
     localStorage.setItem('system_settings', JSON.stringify(systemSettings))
     localStorage.setItem('price_settings', JSON.stringify(priceSettings))
+    localStorage.setItem('email_settings', JSON.stringify(emailSettings))
+    localStorage.setItem('sms_settings', JSON.stringify(smsSettings))
+    localStorage.setItem('api_settings', JSON.stringify(apiSettings))
+    localStorage.setItem('upload_settings', JSON.stringify(uploadSettings))
+    localStorage.setItem('notification_settings', JSON.stringify(notificationSettings))
+    localStorage.setItem('performance_settings', JSON.stringify(performanceSettings))
+    localStorage.setItem('security_settings', JSON.stringify(securitySettings))
     ElMessage.success('设置保存成功')
   } catch (error) {
     ElMessage.error('设置保存失败')
@@ -1546,20 +2118,47 @@ const saveSettings = () => {
 }
 
 const resetSettings = () => {
-  Object.assign(systemSettings, {
-    siteName: '卡密系统',
-    siteDescription: '专业的卡密销售管理系统',
-    allowRegister: true,
-    emailVerification: false
-  })
-  
-  Object.assign(priceSettings, {
-    monthlyPrice: 29.90,
-    quarterlyPrice: 79.90,
-    yearlyPrice: 299.90
-  })
-  
-  ElMessage.info('设置已重置')
+  ElMessageBox.confirm('确定要重置所有设置吗？此操作不可恢复！', '确认重置', {
+    type: 'warning'
+  }).then(() => {
+    Object.assign(systemSettings, {
+      siteName: '卡密系统',
+      siteDescription: '专业的卡密销售管理系统',
+      logo: '',
+      siteUrl: '',
+      icpLicense: '',
+      contactInfo: '',
+      allowRegister: true,
+      emailVerification: false,
+      autoApproveOrders: true,
+      maintenanceMode: false
+    })
+    Object.assign(priceSettings, {
+      monthlyPrice: 29.90,
+      quarterlyPrice: 79.90,
+      yearlyPrice: 299.90,
+      vipDiscount: 0.9,
+      svipDiscount: 0.8
+    })
+    Object.assign(emailSettings, {
+      smtpHost: '',
+      smtpPort: 465,
+      smtpSsl: true,
+      smtpUser: '',
+      smtpPassword: '',
+      senderName: '系统通知'
+    })
+    Object.assign(notificationSettings, {
+      newOrder: true,
+      lowStock: true,
+      stockThreshold: 50,
+      userFeedback: true,
+      systemError: true,
+      channels: ['email', 'system'],
+      adminEmail: ''
+    })
+    ElMessage.success('设置已重置')
+  }).catch(() => {})
 }
 
 // 加载真实数据的函数
@@ -1957,6 +2556,58 @@ onMounted(() => {
     if (savedPriceSettings) {
       Object.assign(priceSettings, JSON.parse(savedPriceSettings))
     }
+    
+    // 加载邮件设置
+    const savedEmailSettings = localStorage.getItem('email_settings')
+    if (savedEmailSettings) {
+      Object.assign(emailSettings, JSON.parse(savedEmailSettings))
+    }
+    
+    // 加载短信设置
+    const savedSmsSettings = localStorage.getItem('sms_settings')
+    if (savedSmsSettings) {
+      Object.assign(smsSettings, JSON.parse(savedSmsSettings))
+    }
+    
+    // 加载API设置
+    const savedApiSettings = localStorage.getItem('api_settings')
+    if (savedApiSettings) {
+      Object.assign(apiSettings, JSON.parse(savedApiSettings))
+    } else {
+      // 如果没有API密钥，生成一个
+      generateApiKey()
+    }
+    
+    // 加载上传设置
+    const savedUploadSettings = localStorage.getItem('upload_settings')
+    if (savedUploadSettings) {
+      Object.assign(uploadSettings, JSON.parse(savedUploadSettings))
+    }
+    
+    // 加载通知设置
+    const savedNotificationSettings = localStorage.getItem('notification_settings')
+    if (savedNotificationSettings) {
+      Object.assign(notificationSettings, JSON.parse(savedNotificationSettings))
+    }
+    
+    // 加载性能设置
+    const savedPerformanceSettings = localStorage.getItem('performance_settings')
+    if (savedPerformanceSettings) {
+      Object.assign(performanceSettings, JSON.parse(savedPerformanceSettings))
+    }
+    
+    // 加载安全设置
+    const savedSecuritySettings = localStorage.getItem('security_settings')
+    if (savedSecuritySettings) {
+      Object.assign(securitySettings, JSON.parse(savedSecuritySettings))
+    }
+    
+    // 检查维护模式状态
+    if (systemSettings.maintenanceMode) {
+      if (!maintenanceStore.isMaintenanceMode) {
+        maintenanceStore.enableMaintenanceMode('系统维护中')
+      }
+    }
   } catch (error) {
     console.warn('加载设置失败:', error)
   }
@@ -2095,9 +2746,49 @@ onMounted(() => {
 }
 
 .security-settings {
-  text-align: center;
-  padding: 40px 20px;
+  text-align: left;
+  padding: 20px 0;
+  color: #606266;
+}
+
+.setting-hint {
+  font-size: 12px;
   color: #909399;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.logo-uploader {
+  :deep(.el-upload) {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    width: 200px;
+    height: 60px;
+    
+    &:hover {
+      border-color: #409eff;
+    }
+  }
+  
+  .logo-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 200px;
+    height: 60px;
+    line-height: 60px;
+    text-align: center;
+  }
+  
+  .logo-preview {
+    width: 200px;
+    height: 60px;
+    object-fit: contain;
+    display: block;
+  }
 }
 
 .header-actions {

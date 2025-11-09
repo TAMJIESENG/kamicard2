@@ -148,6 +148,13 @@ export const useUserStore = defineStore('user', () => {
         const currentUser = allUsers.find(u => String(u.id) === String(userData.id))
         
         if (currentUser) {
+          // 检查用户状态，如果被禁用则自动登出
+          if (currentUser.status === 'disabled') {
+            console.log('⚠️ 检测到用户账户已被禁用，自动登出')
+            logout()
+            return
+          }
+          
           // 合并用户数据，确保包含最新的余额等信息
           user.value = {
             id: currentUser.id,
@@ -163,7 +170,8 @@ export const useUserStore = defineStore('user', () => {
             realName: currentUser.realName || '',
             bio: currentUser.bio || '',
             twoFactorEnabled: currentUser.twoFactorEnabled || false,
-            emailVerified: currentUser.emailVerified || false
+            emailVerified: currentUser.emailVerified || false,
+            status: currentUser.status || 'active'
           }
           
           // 更新本地存储的用户数据
@@ -248,6 +256,16 @@ export const useUserStore = defineStore('user', () => {
           }
         }
         
+        // 检查管理员账户状态
+        if (adminUser.status === 'disabled') {
+          AuditLogger.log('admin_login_blocked', { 
+            username: credentials.username,
+            reason: 'account_disabled',
+            timestamp: new Date().toISOString()
+          })
+          return { success: false, message: '您的账户已被禁用，请联系系统管理员' }
+        }
+        
         // 管理员IP验证通过，登录成功
         console.log('✅ 管理员IP验证通过')
         const newToken = `admin_token_${adminUser.id}_${Date.now()}`
@@ -271,7 +289,8 @@ export const useUserStore = defineStore('user', () => {
           bio: adminUser.bio || '',
           level: adminUser.level || 'SVIP',
           twoFactorEnabled: adminUser.twoFactorEnabled || false,
-          emailVerified: adminUser.emailVerified || true
+          emailVerified: adminUser.emailVerified || true,
+          status: adminUser.status || 'active'
         }
         
         // 保存会话信息
@@ -385,6 +404,22 @@ export const useUserStore = defineStore('user', () => {
           return { success: false, message: '用户名或密码错误' }
         }
 
+        // 检查用户账户状态
+        if (foundUser.status === 'disabled') {
+          // 记录失败尝试（虽然密码正确，但账户被禁用）
+          rateLimiter.recordFailure(cleanUsername)
+          rateLimiter.recordFailure(clientIP)
+          
+          AuditLogger.log('login_blocked', { 
+            username: cleanUsername,
+            userId: foundUser.id,
+            reason: 'account_disabled',
+            timestamp: new Date().toISOString()
+          })
+          
+          return { success: false, message: '您的账户已被禁用，请联系管理员' }
+        }
+
         // 登录成功，重置限流计数
         rateLimiter.reset(cleanUsername)
         rateLimiter.reset(clientIP)
@@ -406,7 +441,8 @@ export const useUserStore = defineStore('user', () => {
           bio: foundUser.bio || '',
           level: foundUser.level || '普通',
           twoFactorEnabled: foundUser.twoFactorEnabled || false,
-          emailVerified: foundUser.emailVerified || false
+          emailVerified: foundUser.emailVerified || false,
+          status: foundUser.status || 'active'
         }
         
         // 保存到 localStorage 和 Cookies
@@ -433,6 +469,18 @@ export const useUserStore = defineStore('user', () => {
 
   const register = async (userData) => {
     try {
+      // 检查系统设置：是否允许用户注册
+      const systemSettings = JSON.parse(localStorage.getItem('system_settings') || '{}')
+      if (systemSettings.allowRegister === false) {
+        AuditLogger.log('register_blocked', { 
+          username: userData.username,
+          email: userData.email,
+          reason: 'registration_disabled',
+          timestamp: new Date().toISOString()
+        })
+        return { success: false, message: '系统当前不允许新用户注册，请联系管理员' }
+      }
+
       // 输入验证
       const usernameValidation = InputValidator.validateUsername(userData.username)
       if (!usernameValidation.isValid) {

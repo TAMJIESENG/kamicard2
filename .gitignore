@@ -36,3 +36,21 @@ Thumbs.db
 # Debug files
 debug*.html
 test-*.html
+*-fix*.html
+*-test.html
+emergency-*.html
+review-*.html
+purchase-*.html
+validation-*.html
+form-*.html
+login-*.html
+admin-*.html
+enterprise-*.html
+
+# Test directories
+weixin/
+xinxi/
+
+# Documentation (optional - uncomment if you don't want to include guides)
+# *-guide.md
+# language-*.md

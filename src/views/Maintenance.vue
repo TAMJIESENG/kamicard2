@@ -459,13 +459,35 @@ onUnmounted(() => {
     height: 100%;
     background: linear-gradient(135deg, 
       #667eea 0%,
-      #764ba2 25%,
-      #667eea 50%,
-      #f093fb 75%,
+      #764ba2 8%,
+      #f093fb 16%,
+      #f5576c 24%,
+      #4facfe 32%,
+      #00f2fe 40%,
+      #a8edea 48%,
+      #fed6e3 56%,
+      #d299c2 64%,
+      #fef9d7 72%,
+      #667eea 80%,
+      #764ba2 88%,
+      #f093fb 96%,
       #f5576c 100%
     );
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    background-size: 600% 600%;
+    animation: gradientShift 20s ease infinite;
+    
+    // 添加额外的渐变层
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+      animation: overlayShift 25s ease infinite;
+    }
   }
   
   // 粒子效果
@@ -478,22 +500,36 @@ onUnmounted(() => {
     
     .particle {
       position: absolute;
-      width: 4px;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.6);
+      width: 6px;
+      height: 6px;
+      background: linear-gradient(45deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
       border-radius: 50%;
       animation: particleFloat linear infinite;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
       
       &::before {
         content: '';
         position: absolute;
-        top: -1px;
-        left: -1px;
-        width: 6px;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.2);
+        top: -2px;
+        left: -2px;
+        width: 10px;
+        height: 10px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
         border-radius: 50%;
-        animation: particlePulse 2s ease-in-out infinite;
+        animation: particlePulse 3s ease-in-out infinite;
+      }
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 2px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: particleCore 2s ease-in-out infinite;
       }
     }
   }
@@ -575,12 +611,12 @@ onUnmounted(() => {
       .brand-logo {
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, #409EFF, #67C23A);
+        background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         
         .logo-icon {
           font-size: 24px;
@@ -763,17 +799,64 @@ onUnmounted(() => {
     gap: 24px;
     
     .info-card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 32px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 36px;
+      backdrop-filter: blur(30px);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      
+      // 添加微妙的渐变边框
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        background: linear-gradient(135deg, 
+          rgba(255, 255, 255, 0.3) 0%, 
+          rgba(255, 255, 255, 0.1) 50%, 
+          rgba(255, 255, 255, 0.3) 100%);
+        border-radius: 24px;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: xor;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      // 添加内部光泽效果
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+          transparent, 
+          rgba(255, 255, 255, 0.1), 
+          transparent);
+        transition: left 0.6s ease;
+      }
       
       &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        transform: translateY(-12px) scale(1.02);
+        box-shadow: 
+          0 20px 60px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.4);
+        
+        &::before {
+          opacity: 1;
+        }
+        
+        &::after {
+          left: 100%;
+        }
       }
       
       .card-header {
@@ -782,32 +865,60 @@ onUnmounted(() => {
         margin-bottom: 20px;
         
         .card-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 16px;
+          width: 64px;
+          height: 64px;
+          border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-right: 16px;
+          margin-right: 20px;
+          position: relative;
+          overflow: hidden;
+          
+          // 添加内部光泽效果
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+              transparent, 
+              rgba(255, 255, 255, 0.3), 
+              transparent);
+            transition: left 0.6s ease;
+          }
           
           &.reason-icon {
-            background: linear-gradient(135deg, #409EFF, #67C23A);
-            box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
           }
           
           &.time-icon {
-            background: linear-gradient(135deg, #E6A23C, #F56C6C);
-            box-shadow: 0 4px 16px rgba(245, 108, 108, 0.3);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+            box-shadow: 0 8px 24px rgba(240, 147, 251, 0.4);
           }
           
           &.contact-icon {
-            background: linear-gradient(135deg, #67C23A, #85CE61);
-            box-shadow: 0 4px 16px rgba(103, 194, 58, 0.3);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #a8edea 100%);
+            box-shadow: 0 8px 24px rgba(79, 172, 254, 0.4);
           }
           
           .el-icon {
-            font-size: 24px;
+            font-size: 28px;
             color: white;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            z-index: 1;
+            position: relative;
+          }
+          
+          &:hover {
+            transform: scale(1.1) rotate(5deg);
+            
+            &::before {
+              left: 100%;
+            }
           }
         }
         
@@ -920,12 +1031,39 @@ onUnmounted(() => {
   
   .progress-container {
     .progress-info {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 24px;
-      padding: 40px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      padding: 48px;
+      backdrop-filter: blur(30px);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+      
+      // 添加微妙的渐变边框
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        background: linear-gradient(135deg, 
+          rgba(255, 255, 255, 0.3) 0%, 
+          rgba(255, 255, 255, 0.1) 50%, 
+          rgba(255, 255, 255, 0.3) 100%);
+        border-radius: 28px;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: xor;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      &:hover {
+        &::before {
+          opacity: 1;
+        }
+      }
       
       .progress-stats {
         display: flex;
@@ -942,7 +1080,7 @@ onUnmounted(() => {
           .stat-icon {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, #409EFF, #67C23A);
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -996,13 +1134,47 @@ onUnmounted(() => {
           .progress-percentage {
             font-size: 20px;
             font-weight: 700;
-            color: #409EFF;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
           }
         }
         
         .enterprise-progress {
           .el-progress-bar__outer {
-            background-color: #f0f0f0;
+            background: linear-gradient(90deg, 
+              rgba(255, 255, 255, 0.2) 0%, 
+              rgba(255, 255, 255, 0.1) 100%);
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          
+          .el-progress-bar__inner {
+            background: linear-gradient(90deg, 
+              #667eea 0%, 
+              #764ba2 25%, 
+              #f093fb 50%, 
+              #f5576c 75%, 
+              #4facfe 100%);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: -100%;
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.3), 
+                transparent);
+              animation: progressShimmer 2s ease-in-out infinite;
+            }
           }
         }
       }
@@ -1029,7 +1201,10 @@ onUnmounted(() => {
       
       .announcement-icon {
         font-size: 24px;
-        color: #409EFF;
+        background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin-right: 12px;
       }
       
@@ -1061,11 +1236,15 @@ onUnmounted(() => {
           padding: 16px 20px;
           background: #f8f9fa;
           border-radius: 16px;
-          border-left: 4px solid #409EFF;
+          border-left: 4px solid;
+          border-image: linear-gradient(135deg, #667eea, #764ba2, #f093fb) 1;
           
           .notice-icon {
             font-size: 18px;
-            color: #409EFF;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             flex-shrink: 0;
           }
           
@@ -1090,27 +1269,88 @@ onUnmounted(() => {
     flex-wrap: wrap;
     
     .action-btn {
-      padding: 16px 32px;
+      padding: 18px 36px;
       font-size: 16px;
-      font-weight: 600;
-      border-radius: 16px;
-      min-width: 160px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-weight: 700;
+      border-radius: 20px;
+      min-width: 180px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      border: none;
+      letter-spacing: 0.025em;
+      
+      // 添加光泽效果
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+          transparent, 
+          rgba(255, 255, 255, 0.3), 
+          transparent);
+        transition: left 0.6s ease;
+      }
+      
+      // 添加点击波纹效果
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.3s ease, height 0.3s ease;
+      }
       
       &:hover {
-        transform: translateY(-2px);
+        transform: translateY(-4px) scale(1.05);
+        
+        &::before {
+          left: 100%;
+        }
       }
       
-      &.primary-btn:hover {
-        box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4);
+      &:active {
+        transform: translateY(-2px) scale(1.02);
+        
+        &::after {
+          width: 300px;
+          height: 300px;
+        }
       }
       
-      &.admin-btn:hover {
-        box-shadow: 0 8px 24px rgba(103, 194, 58, 0.4);
+      &.primary-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        
+        &:hover {
+          box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+        }
       }
       
-      &.home-btn:hover {
-        box-shadow: 0 8px 24px rgba(144, 147, 153, 0.4);
+      &.admin-btn {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+        box-shadow: 0 4px 16px rgba(240, 147, 251, 0.3);
+        
+        &:hover {
+          box-shadow: 0 12px 32px rgba(240, 147, 251, 0.5);
+        }
+      }
+      
+      &.home-btn {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #a8edea 100%);
+        box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+        
+        &:hover {
+          box-shadow: 0 12px 32px rgba(79, 172, 254, 0.5);
+        }
       }
     }
   }
@@ -1229,6 +1469,41 @@ onUnmounted(() => {
   100% {
     transform: translate(-50%, -50%) scale(1.2);
     opacity: 0;
+  }
+}
+
+@keyframes overlayShift {
+  0%, 100% { 
+    transform: translateX(0) translateY(0);
+  }
+  25% { 
+    transform: translateX(20px) translateY(-10px);
+  }
+  50% { 
+    transform: translateX(-10px) translateY(20px);
+  }
+  75% { 
+    transform: translateX(15px) translateY(5px);
+  }
+}
+
+@keyframes particleCore {
+  0%, 100% { 
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+@keyframes progressShimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
   }
 }
 

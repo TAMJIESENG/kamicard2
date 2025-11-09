@@ -215,6 +215,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useCardStore } from '@/stores/card'
+import { AuditLogger } from '@/utils/security'
 import { 
   Plus, CircleCheck, Download, CopyDocument 
 } from '@element-plus/icons-vue'
@@ -294,6 +295,15 @@ const quickGenerate = async (type, quantity) => {
       generatedCards.value = result.data.cards
       showResultDialog.value = true
       updateStats()
+      
+      // 记录安全日志
+      AuditLogger.logCardOperation('upload', {
+        type,
+        quantity,
+        value: valueMap[type],
+        cards: result.data.cards.length,
+        operator: 'admin'
+      })
     } else {
       ElMessage.error(result.message)
     }
@@ -318,6 +328,15 @@ const handleGenerate = async () => {
           showGenerateDialog.value = false
           showResultDialog.value = true
           updateStats()
+          
+          // 记录安全日志
+          AuditLogger.logCardOperation('upload', {
+            type: generateForm.type,
+            quantity: generateForm.quantity,
+            value: generateForm.value,
+            cards: result.data.cards.length,
+            operator: 'admin'
+          })
         } else {
           ElMessage.error(result.message)
         }
@@ -344,6 +363,12 @@ const copyCard = async (cardNumber) => {
   try {
     await navigator.clipboard.writeText(cardNumber)
     ElMessage.success('卡号已复制到剪贴板')
+    
+    // 记录安全日志
+    AuditLogger.logCardOperation('copy', {
+      cardNumber: cardNumber.substring(0, 8) + '...', // 只记录前8位，保护隐私
+      operator: 'admin'
+    })
   } catch (error) {
     ElMessage.error('复制失败')
   }
@@ -355,6 +380,13 @@ const copyAllCards = async () => {
   try {
     await navigator.clipboard.writeText(cardNumbers)
     ElMessage.success('所有卡号已复制到剪贴板')
+    
+    // 记录安全日志
+    AuditLogger.logCardOperation('copy', {
+      cardCount: generatedCards.value.length,
+      operator: 'admin',
+      type: 'batch_copy'
+    })
   } catch (error) {
     ElMessage.error('复制失败')
   }

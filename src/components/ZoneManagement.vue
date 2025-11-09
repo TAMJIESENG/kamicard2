@@ -283,7 +283,7 @@
           <el-table-column prop="name" label="商品名称" width="200">
             <template #default="scope">
               <div class="product-name-cell">
-                <img :src="scope.row.image || '/default-product.jpg'" class="product-thumb" />
+                <img :src="scope.row.image || '/ceshi/default-product.jpg'" class="product-thumb" />
                 <div>
                   <div class="product-name">{{ scope.row.name }}</div>
                   <div class="product-id">ID: {{ scope.row.id }}</div>

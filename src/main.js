@@ -8,6 +8,7 @@ import router from './router'
 import { useUserStore } from '@/stores/user'
 import { useSettingsStore } from '@/stores/settings'
 import { initializeSampleData } from '@/utils/initialize'
+import { initializeDailyCoupons } from '@/utils/coupon-auto-generator'
 import I18nPlugin, { initI18n } from '@/plugins/i18n'
 import '@/styles/global.scss'
 
@@ -99,6 +100,9 @@ initializeDefaultAdmin()
 
 // 初始化示例数据
 initializeSampleData()
+
+// 初始化每日优惠券自动生成
+initializeDailyCoupons()
 
 // 开发者工具配置 - 仅管理员可用
 const initializeDevTools = () => {

@@ -43,8 +43,13 @@
           </router-link>
           <div class="user-info-compact">
             <div class="balance-chip">¥{{ (currentUser?.balance || 0).toFixed(2) }}</div>
-            <el-tag :type="currentVipInfo.level === 0 ? 'info' : currentVipInfo.level === 1 ? 'warning' : ''" 
-                    :color="currentVipInfo.level === 2 ? '#9333ea' : ''" 
+            <el-tag v-if="currentVipInfo.level === 2"
+                    color="#9333ea" 
+                    class="vip-status-chip" size="small">
+              {{ currentVipInfo.name }}
+            </el-tag>
+            <el-tag v-else
+                    :type="currentVipInfo.level === 0 ? 'info' : 'warning'" 
                     class="vip-status-chip" size="small">
               {{ currentVipInfo.name }}
             </el-tag>

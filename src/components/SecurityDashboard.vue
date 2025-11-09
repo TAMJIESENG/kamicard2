@@ -73,22 +73,58 @@
         </div>
       </template>
 
+      <!-- 快速搜索 -->
+      <div class="quick-search">
+        <el-input
+          v-model="quickSearch"
+          placeholder="快速搜索事件详情、用户名、IP地址等..."
+          clearable
+          @input="handleQuickSearch"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+      </div>
+      
       <!-- 筛选条件 -->
       <div class="filter-bar">
         <el-form :model="filterForm" inline>
           <el-form-item label="事件类型">
             <el-select v-model="filterForm.action" placeholder="所有事件" clearable>
-              <el-option label="登录成功" value="login_success" />
-              <el-option label="登录失败" value="login_failed" />
-              <el-option label="登录被阻止" value="login_blocked" />
-              <el-option label="管理员登录成功" value="admin_login_success" />
-              <el-option label="管理员登录失败" value="admin_login_failed" />
-              <el-option label="注册成功" value="register_success" />
-              <el-option label="注册失败" value="register_failed" />
-              <el-option label="登出" value="logout" />
-              <el-option label="数据读取" value="storage_read" />
-              <el-option label="数据写入" value="storage_write" />
-              <el-option label="数据删除" value="storage_delete" />
+              <el-option-group label="用户操作">
+                <el-option label="登录成功" value="login_success" />
+                <el-option label="登录失败" value="login_failed" />
+                <el-option label="登录被阻止" value="login_blocked" />
+                <el-option label="管理员登录成功" value="admin_login_success" />
+                <el-option label="管理员登录失败" value="admin_login_failed" />
+                <el-option label="注册成功" value="register_success" />
+                <el-option label="注册失败" value="register_failed" />
+                <el-option label="登出" value="logout" />
+              </el-option-group>
+              <el-option-group label="维护操作">
+                <el-option label="启用维护模式" value="maintenance_enabled" />
+                <el-option label="禁用维护模式" value="maintenance_disabled" />
+                <el-option label="更新维护信息" value="maintenance_updated" />
+              </el-option-group>
+              <el-option-group label="卡密管理">
+                <el-option label="上传卡密" value="card_upload" />
+                <el-option label="复制卡密" value="card_copy" />
+                <el-option label="删除卡密" value="card_delete" />
+                <el-option label="批量操作" value="card_batch" />
+              </el-option-group>
+              <el-option-group label="用户管理">
+                <el-option label="创建用户" value="user_create" />
+                <el-option label="修改用户" value="user_update" />
+                <el-option label="删除用户" value="user_delete" />
+                <el-option label="重置密码" value="user_reset_password" />
+              </el-option-group>
+              <el-option-group label="系统操作">
+                <el-option label="数据读取" value="storage_read" />
+                <el-option label="数据写入" value="storage_write" />
+                <el-option label="数据删除" value="storage_delete" />
+                <el-option label="系统设置" value="system_settings" />
+              </el-option-group>
             </el-select>
           </el-form-item>
           
@@ -98,6 +134,23 @@
               placeholder="输入用户名"
               clearable
             />
+          </el-form-item>
+          
+          <el-form-item label="IP地址">
+            <el-input 
+              v-model="filterForm.ipAddress" 
+              placeholder="输入IP地址"
+              clearable
+            />
+          </el-form-item>
+          
+          <el-form-item label="风险等级">
+            <el-select v-model="filterForm.riskLevel" placeholder="所有风险等级" clearable>
+              <el-option label="低风险" value="low" />
+              <el-option label="中风险" value="medium" />
+              <el-option label="高风险" value="high" />
+              <el-option label="严重" value="critical" />
+            </el-select>
           </el-form-item>
           
           <el-form-item label="时间范围">
@@ -137,6 +190,14 @@
           <template #default="scope">
             <el-tag :type="getEventType(scope.row.action)">
               {{ getEventName(scope.row.action) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="riskLevel" label="风险等级" width="100">
+          <template #default="scope">
+            <el-tag :type="getRiskLevelType(scope.row.riskLevel)" size="small">
+              {{ getRiskLevelName(scope.row.riskLevel) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -265,8 +326,12 @@ const auditLogs = ref([])
 const filterForm = reactive({
   action: '',
   username: '',
+  ipAddress: '',
+  riskLevel: '',
   dateRange: []
 })
+
+const quickSearch = ref('')
 
 const pagination = reactive({
   currentPage: 1,
@@ -294,6 +359,22 @@ const securityStats = computed(() => {
 const filteredLogs = computed(() => {
   let filtered = auditLogs.value
 
+  // 快速搜索
+  if (quickSearch.value) {
+    const searchTerm = quickSearch.value.toLowerCase()
+    filtered = filtered.filter(log => {
+      const username = (log.username || log.details?.username || '').toLowerCase()
+      const ipAddress = (log.ipAddress || log.details?.ipAddress || '').toLowerCase()
+      const details = JSON.stringify(log.details || {}).toLowerCase()
+      const action = getEventName(log.action).toLowerCase()
+      
+      return username.includes(searchTerm) || 
+             ipAddress.includes(searchTerm) || 
+             details.includes(searchTerm) ||
+             action.includes(searchTerm)
+    })
+  }
+
   if (filterForm.action) {
     filtered = filtered.filter(log => log.action === filterForm.action)
   }
@@ -303,6 +384,17 @@ const filteredLogs = computed(() => {
       (log.username && log.username.toLowerCase().includes(filterForm.username.toLowerCase())) ||
       (log.details?.username && log.details.username.toLowerCase().includes(filterForm.username.toLowerCase()))
     )
+  }
+
+  if (filterForm.ipAddress) {
+    filtered = filtered.filter(log => 
+      (log.ipAddress && log.ipAddress.includes(filterForm.ipAddress)) ||
+      (log.details?.ipAddress && log.details.ipAddress.includes(filterForm.ipAddress))
+    )
+  }
+
+  if (filterForm.riskLevel) {
+    filtered = filtered.filter(log => log.riskLevel === filterForm.riskLevel)
   }
 
   if (filterForm.dateRange && filterForm.dateRange.length === 2) {
@@ -324,6 +416,7 @@ const filteredLogs = computed(() => {
 
 const getEventType = (action) => {
   const typeMap = {
+    // 用户操作
     login_success: 'success',
     login_failed: 'danger',
     login_blocked: 'warning',
@@ -332,15 +425,60 @@ const getEventType = (action) => {
     register_success: 'success',
     register_failed: 'danger',
     logout: 'info',
+    
+    // 维护操作
+    maintenance_enabled: 'warning',
+    maintenance_disabled: 'success',
+    maintenance_updated: 'primary',
+    
+    // 卡密管理
+    card_upload: 'primary',
+    card_copy: 'info',
+    card_delete: 'danger',
+    card_batch: 'warning',
+    
+    // 用户管理
+    user_create: 'success',
+    user_update: 'primary',
+    user_delete: 'danger',
+    user_reset_password: 'warning',
+    
+    // 系统操作
     storage_read: 'info',
     storage_write: 'primary',
-    storage_delete: 'warning'
+    storage_delete: 'warning',
+    system_settings: 'primary'
   }
   return typeMap[action] || 'info'
 }
 
+const getRiskLevelType = (riskLevel) => {
+  const typeMap = {
+    low: 'success',
+    medium: 'warning',
+    high: 'danger',
+    critical: 'danger'
+  }
+  return typeMap[riskLevel] || 'info'
+}
+
+const getRiskLevelName = (riskLevel) => {
+  const nameMap = {
+    low: '低风险',
+    medium: '中风险',
+    high: '高风险',
+    critical: '严重'
+  }
+  return nameMap[riskLevel] || '未知'
+}
+
+const handleQuickSearch = () => {
+  pagination.currentPage = 1
+}
+
 const getEventName = (action) => {
   const nameMap = {
+    // 用户操作
     login_success: '登录成功',
     login_failed: '登录失败',
     login_blocked: '登录被阻止',
@@ -353,9 +491,29 @@ const getEventName = (action) => {
     register_attempt_invalid_email: '注册邮箱错误',
     register_attempt_weak_password: '密码强度不足',
     logout: '用户登出',
+    
+    // 维护操作
+    maintenance_enabled: '启用维护模式',
+    maintenance_disabled: '禁用维护模式',
+    maintenance_updated: '更新维护信息',
+    
+    // 卡密管理
+    card_upload: '上传卡密',
+    card_copy: '复制卡密',
+    card_delete: '删除卡密',
+    card_batch: '批量操作卡密',
+    
+    // 用户管理
+    user_create: '创建用户',
+    user_update: '修改用户',
+    user_delete: '删除用户',
+    user_reset_password: '重置密码',
+    
+    // 系统操作
     storage_read: '数据读取',
     storage_write: '数据写入',
-    storage_delete: '数据删除'
+    storage_delete: '数据删除',
+    system_settings: '系统设置变更'
   }
   return nameMap[action] || action
 }
@@ -454,7 +612,10 @@ const applyFilter = () => {
 const resetFilter = () => {
   filterForm.action = ''
   filterForm.username = ''
+  filterForm.ipAddress = ''
+  filterForm.riskLevel = ''
   filterForm.dateRange = []
+  quickSearch.value = ''
   pagination.currentPage = 1
 }
 
@@ -519,6 +680,14 @@ onMounted(() => {
         .el-button {
           margin-left: 8px;
         }
+      }
+    }
+    
+    .quick-search {
+      margin-bottom: 16px;
+      
+      .el-input {
+        max-width: 500px;
       }
     }
     

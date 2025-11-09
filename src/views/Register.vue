@@ -164,8 +164,8 @@
             <div class="captcha-label">
               <label>安全验证</label>
             </div>
-            <SliderCaptcha 
-              ref="sliderCaptchaRef"
+            <AdvancedCaptcha 
+              ref="advancedCaptchaRef"
               @success="onCaptchaSuccess"
               @fail="onCaptchaFail"
             />
@@ -229,14 +229,14 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import { User, Lock, Message } from '@element-plus/icons-vue'
-import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import AdvancedCaptcha from '@/components/AdvancedCaptcha.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const maintenanceStore = useMaintenanceStore()
 
 const registerFormRef = ref()
-const sliderCaptchaRef = ref()
+const advancedCaptchaRef = ref()
 const loading = ref(false)
 const captchaVerified = ref(false)
 
@@ -317,6 +317,17 @@ const handleRegister = async () => {
     return
   }
   
+  // 检查系统设置：是否允许用户注册
+  try {
+    const systemSettings = JSON.parse(localStorage.getItem('system_settings') || '{}')
+    if (systemSettings.allowRegister === false) {
+      ElMessage.error('系统当前不允许新用户注册，请联系管理员')
+      return
+    }
+  } catch (error) {
+    console.error('检查系统设置失败:', error)
+  }
+  
   if (!registerForm.agree) {
     ElMessage.error('请先同意用户协议')
     return
@@ -346,8 +357,8 @@ const handleRegister = async () => {
         } else {
           ElMessage.error(result.message)
           // 注册失败时重置验证码
-          if (sliderCaptchaRef.value) {
-            sliderCaptchaRef.value.refresh()
+          if (advancedCaptchaRef.value) {
+            advancedCaptchaRef.value.refresh()
             captchaVerified.value = false
           }
         }
@@ -361,6 +372,16 @@ const handleRegister = async () => {
 onMounted(() => {
   // 检查维护模式状态
   maintenanceStore.checkMaintenanceMode()
+  
+  // 检查系统设置：是否允许用户注册
+  try {
+    const systemSettings = JSON.parse(localStorage.getItem('system_settings') || '{}')
+    if (systemSettings.allowRegister === false) {
+      ElMessage.warning('系统当前不允许新用户注册，请联系管理员')
+    }
+  } catch (error) {
+    console.error('检查系统设置失败:', error)
+  }
 })
 </script>
 

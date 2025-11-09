@@ -9,6 +9,11 @@
       </template>
       
       <el-tabs v-model="activeTab" type="border-card">
+        <!-- 实时聊天 -->
+        <el-tab-pane label="实时聊天" name="realtime">
+          <RealtimeChat />
+        </el-tab-pane>
+        
         <!-- 提交新请求 -->
         <el-tab-pane label="提交问题" name="submit">
           <div class="submit-form">
@@ -187,6 +192,7 @@ import { ElMessage } from 'element-plus'
 import { useContactStore } from '@/stores/contact'
 import { useUserStore } from '@/stores/user'
 import { Service, Message, Refresh } from '@element-plus/icons-vue'
+import RealtimeChat from './RealtimeChat.vue'
 
 const contactStore = useContactStore()
 const userStore = useUserStore()
