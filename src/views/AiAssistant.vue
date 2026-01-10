@@ -222,6 +222,7 @@
                     <path d="M12 2a10 10 0 0 0-9.95 9h11.64L9.74 7.05a1 1 0 0 1 1.41-1.41l5.66 5.65a1 1 0 0 1 0 1.42l-5.66 5.65a1 1 0 0 1-1.41 0 1 1 0 0 1 0-1.41L13.69 13H2.05A10 10 0 1 0 12 2z"></path>
                   </svg>
                   <span class="thinking-title">深度思考过程</span>
+                  <span v-if="message.thinkingProcess.status === 'thinking'" class="thinking-time">{{ message.thinkingProcess.elapsedTime || '0' }}s</span>
                 </div>
                 <div class="thinking-steps">
                   <div 
@@ -230,7 +231,8 @@
                     class="thinking-step"
                     :class="{ 
                       active: index === message.thinkingProcess.currentStep && message.thinkingProcess.status === 'thinking',
-                      completed: index < message.thinkingProcess.currentStep || message.thinkingProcess.status === 'complete'
+                      completed: index < message.thinkingProcess.currentStep || message.thinkingProcess.status === 'complete',
+                      hidden: index > message.thinkingProcess.currentStep && message.thinkingProcess.status === 'thinking'
                     }"
                   >
                     <div class="step-indicator">
@@ -240,15 +242,22 @@
                       <div v-else-if="index === message.thinkingProcess.currentStep && message.thinkingProcess.status === 'thinking'" class="thinking-dot"></div>
                       <div v-else class="pending-dot"></div>
                     </div>
-                    <span class="step-text">{{ step }}</span>
+                    <span class="step-text">
+                      <template v-if="index === message.thinkingProcess.currentStep && message.thinkingProcess.status === 'thinking'">
+                        {{ message.thinkingProcess.currentText }}<span class="step-cursor"></span>
+                      </template>
+                      <template v-else>
+                        {{ step }}
+                      </template>
+                    </span>
                   </div>
                 </div>
               </div>
               
               <div class="message-text">
                 <template v-if="message.isTyping">
-                  <div class="typing-wrapper">
-                    <span class="typing-content">{{ message.content }}</span>
+                  <div class="stream-output">
+                    <span class="stream-text" v-html="formatStreamingMessage(message.content)"></span><span class="typing-cursor"></span>
                   </div>
                 </template>
                 <template v-else>
@@ -280,19 +289,22 @@
           </div>
           
           <!-- 加载中状态 -->
-          <div v-if="isLoading" class="message-item assistant loading">
+          <div v-if="isLoading && !messages.some(m => m.isTyping)" class="message-item assistant loading">
             <div class="message-avatar">
-              <div class="ai-icon">
+              <div class="ai-icon thinking">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                 </svg>
               </div>
             </div>
             <div class="message-content">
-              <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+              <div class="thinking-indicator">
+                <div class="thinking-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <span class="thinking-text">AI 正在思考中...</span>
               </div>
             </div>
           </div>
@@ -771,7 +783,9 @@ const sendMessage = async () => {
           '🔍 探索各种可能性...',
           '💡 综合推理生成答案...'
         ],
-        currentStep: 0
+        currentStep: 0,
+        currentText: '',
+        elapsedTime: 0
       }
     }
     
@@ -786,14 +800,48 @@ const sendMessage = async () => {
     messages.value.push(aiMessage)
     scrollToBottom()
     
-    // 如果有思考过程，逐步显示
+    // 如果有思考过程，逐步显示（带逐字效果）
     if (aiMessage.thinkingProcess) {
+      const startTime = Date.now()
+      // 更新计时器
+      const timerInterval = setInterval(() => {
+        if (aiMessage.thinkingProcess && aiMessage.thinkingProcess.status === 'thinking') {
+          aiMessage.thinkingProcess.elapsedTime = Math.floor((Date.now() - startTime) / 1000)
+        } else {
+          clearInterval(timerInterval)
+        }
+      }, 1000)
+      
       for (let i = 0; i < aiMessage.thinkingProcess.steps.length; i++) {
+        // 使用对象重新赋值触发响应式更新
+        aiMessage.thinkingProcess = {
+          ...aiMessage.thinkingProcess,
+          currentStep: i,
+          currentText: ''
+        }
+        
+        // 逐字显示当前步骤
+        const stepText = aiMessage.thinkingProcess.steps[i]
+        const chars = Array.from(stepText)
+        
+        for (let j = 0; j < chars.length; j++) {
+          aiMessage.thinkingProcess = {
+            ...aiMessage.thinkingProcess,
+            currentText: aiMessage.thinkingProcess.currentText + chars[j]
+          }
+          await new Promise(resolve => setTimeout(resolve, 25)) // 每个字25ms
+        }
+        
+        // 步骤完成后等待一下
         await new Promise(resolve => setTimeout(resolve, 400))
-        aiMessage.thinkingProcess.currentStep = i
       }
-      await new Promise(resolve => setTimeout(resolve, 300))
-      aiMessage.thinkingProcess.status = 'complete'
+      
+      clearInterval(timerInterval)
+      await new Promise(resolve => setTimeout(resolve, 200))
+      aiMessage.thinkingProcess = {
+        ...aiMessage.thinkingProcess,
+        status: 'complete'
+      }
     }
     
     // 如果有搜索结果提示
@@ -836,40 +884,131 @@ const sendMessage = async () => {
   }
 }
 
-// 打字机效果（逐字显示）- 优化版本
+// 打字机效果（逐字显示）- 优化版本：更流畅的流式滚动显示
 const typewriterEffect = async (message, fullText) => {
-  const speed = 20 // 每个字符的延迟（毫秒），调快一点
+  const baseSpeed = 12 // 基础速度（毫秒），更快更流畅
   let currentIndex = 0
   
   // 将文本按字符分割（支持中英文）
   const characters = Array.from(fullText)
+  const totalChars = characters.length
   
-  // 使用 requestAnimationFrame 确保 DOM 更新
-  const typeNextChar = async () => {
-    if (currentIndex < characters.length) {
-      message.content += characters[currentIndex]
-      currentIndex++
-      
-      // 每10个字符滚动一次，减少性能消耗
-      if (currentIndex % 10 === 0) {
-        await nextTick() // 等待 Vue 更新 DOM
-        scrollToBottom()
+  // 批量更新，提高性能
+  const batchSize = 2 // 每批处理的字符数，减少批量大小让显示更平滑
+  
+  // 使用 requestAnimationFrame 优化渲染
+  let animationId = null
+  let lastTime = 0
+  
+  const typeNextBatch = (timestamp) => {
+    if (!lastTime) lastTime = timestamp
+    const elapsed = timestamp - lastTime
+    
+    if (currentIndex < totalChars) {
+      // 控制速度
+      if (elapsed >= baseSpeed) {
+        // 批量添加字符
+        const endIndex = Math.min(currentIndex + batchSize, totalChars)
+        const batch = characters.slice(currentIndex, endIndex).join('')
+        message.content += batch
+        currentIndex = endIndex
+        lastTime = timestamp
+        
+        // 动态速度：标点符号后稍微停顿
+        const lastChar = batch[batch.length - 1]
+        if (/[。！？.!?]/.test(lastChar)) {
+          lastTime -= baseSpeed * 2 // 句号后多停顿一点
+        } else if (/[，、；：,;:]/.test(lastChar)) {
+          lastTime -= baseSpeed // 逗号后稍微停顿
+        }
       }
       
-      // 延迟后继续
-      await new Promise(resolve => setTimeout(resolve, speed))
-      await typeNextChar() // 递归调用
+      animationId = requestAnimationFrame(typeNextBatch)
     } else {
-      // 输出完成，最后滚动一次
-      await nextTick()
-      scrollToBottom()
+      // 输出完成
+      message.content = fullText
+      nextTick(() => smoothScrollToBottom())
     }
   }
   
-  await typeNextChar()
+  // 开始动画
+  animationId = requestAnimationFrame(typeNextBatch)
   
-  // 确保最终内容完整
-  message.content = fullText
+  // 等待完成
+  return new Promise((resolve) => {
+    const checkComplete = setInterval(() => {
+      if (currentIndex >= totalChars) {
+        clearInterval(checkComplete)
+        if (animationId) cancelAnimationFrame(animationId)
+        resolve()
+      }
+    }, 50)
+  })
+}
+
+// 平滑滚动到底部
+const smoothScrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      const container = messagesContainer.value
+      // 使用 scrollTop 直接设置，避免 smooth 滚动的延迟
+      container.scrollTop = container.scrollHeight
+    }
+  })
+}
+
+// 普通滚动到底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
+
+// 格式化流式输出的消息（优化版，更好的实时渲染）
+const formatStreamingMessage = (content) => {
+  if (!content) return ''
+  
+  let formatted = content
+  
+  // 转义HTML特殊字符（但保留换行）
+  formatted = formatted
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  
+  // 代码块处理（完整的代码块）
+  formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+    const language = lang || 'code'
+    return `<div class="stream-code-block"><div class="stream-code-header">${language}</div><pre><code>${code}</code></pre></div>`
+  })
+  
+  // 未完成的代码块（正在输入中）
+  formatted = formatted.replace(/```(\w+)?\n([\s\S]*)$/g, (match, lang, code) => {
+    const language = lang || 'code'
+    return `<div class="stream-code-block typing"><div class="stream-code-header">${language}</div><pre><code>${code}</code></pre></div>`
+  })
+  
+  // 行内代码
+  formatted = formatted.replace(/`([^`\n]+)`/g, '<code class="stream-inline-code">$1</code>')
+  
+  // 粗体
+  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  
+  // 标题
+  formatted = formatted.replace(/^### (.+)$/gm, '<div class="stream-h3">$1</div>')
+  formatted = formatted.replace(/^## (.+)$/gm, '<div class="stream-h2">$1</div>')
+  formatted = formatted.replace(/^# (.+)$/gm, '<div class="stream-h1">$1</div>')
+  
+  // 列表项
+  formatted = formatted.replace(/^[-*] (.+)$/gm, '<div class="stream-list-item">• $1</div>')
+  formatted = formatted.replace(/^\d+\. (.+)$/gm, '<div class="stream-list-item">$&</div>')
+  
+  // 换行处理
+  formatted = formatted.replace(/\n/g, '<br>')
+  
+  return formatted
 }
 
 // 清空消息
@@ -1040,19 +1179,21 @@ const handleShiftEnter = (e) => {
   return true
 }
 
-// 滚动到底部
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
-  })
-}
-
 // 监听消息变化，自动滚动
 watch(() => messages.value.length, () => {
-  scrollToBottom()
+  nextTick(() => smoothScrollToBottom())
 })
+
+// 监听消息内容变化（流式输出时）
+watch(
+  () => messages.value.map(m => m.content).join(''),
+  () => {
+    if (messages.value.some(m => m.isTyping)) {
+      smoothScrollToBottom()
+    }
+  },
+  { flush: 'post' }
+)
 
 // 保存到 LocalStorage
 const saveToLocalStorage = () => {
@@ -1408,6 +1549,25 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  scroll-behavior: smooth;
+  
+  // 自定义滚动条
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #94a3b8;
+    }
+  }
 }
 
 .message-item {
@@ -1690,9 +1850,33 @@ onMounted(() => {
   font-size: 13px;
   color: #475569;
   line-height: 1.5;
+  
+  .step-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 1px;
+    background: #8b5cf6;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
 }
 
-// 打字机光标
+// 思考时间显示
+.thinking-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+// 隐藏未到的步骤
+.thinking-step.hidden {
+  opacity: 0.3;
+}
+
+// 打字机光标和流式输出样式
 @keyframes ambianceDrift {
   0% {
     transform: translate3d(-6%, -6%, 0) scale(1.02);
@@ -1708,11 +1892,220 @@ onMounted(() => {
   }
 }
 
+@keyframes cursorBlink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cursorPulse {
+  0%, 100% {
+    transform: scaleY(1);
+    background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  }
+  50% {
+    transform: scaleY(0.8);
+    background: linear-gradient(180deg, #60a5fa 0%, #a78bfa 100%);
+  }
+}
+
 .message-text {
   font-size: 15px;
   line-height: 1.8;
   word-wrap: break-word;
   white-space: normal;
+
+  // 流式输出样式
+  .stream-output {
+    display: block;
+    width: 100%;
+  }
+
+  .stream-text {
+    font-size: 15px;
+    line-height: 1.85;
+    color: #1e293b;
+    word-wrap: break-word;
+    
+    // 流式代码块
+    :deep(.stream-code-block) {
+      display: block;
+      margin: 12px 0;
+      background: #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      
+      &.typing {
+        border: 1px solid #3b82f6;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+      }
+      
+      .stream-code-header {
+        padding: 6px 12px;
+        background: #0f172a;
+        font-size: 11px;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      pre {
+        margin: 0;
+        padding: 12px 16px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #e2e8f0;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        
+        code {
+          background: none;
+          padding: 0;
+        }
+      }
+    }
+    
+    // 流式行内代码
+    :deep(.stream-inline-code) {
+      background: rgba(139, 92, 246, 0.1);
+      color: #7c3aed;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+    
+    // 流式标题
+    :deep(.stream-h1) {
+      font-size: 1.6em;
+      font-weight: 700;
+      margin: 16px 0 10px 0;
+      color: #1e293b;
+    }
+    
+    :deep(.stream-h2) {
+      font-size: 1.4em;
+      font-weight: 700;
+      margin: 14px 0 8px 0;
+      color: #334155;
+    }
+    
+    :deep(.stream-h3) {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin: 12px 0 6px 0;
+      color: #475569;
+    }
+    
+    // 流式列表项
+    :deep(.stream-list-item) {
+      display: block;
+      margin: 4px 0;
+      padding-left: 8px;
+    }
+    
+    :deep(strong) {
+      font-weight: 700;
+      color: #1e293b;
+    }
+  }
+
+  // 打字光标 - 简洁闪烁效果
+  .typing-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    background: #3b82f6;
+    border-radius: 1px;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  // 流式输出包装器（旧版兼容）
+  .streaming-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+
+  .streaming-content {
+    display: inline;
+    font-size: 15px;
+    line-height: 1.85;
+    color: #1e293b;
+    word-wrap: break-word;
+    
+    // 流式代码块样式
+    :deep(.streaming-code-block) {
+      display: block;
+      margin: 12px 0;
+      background: #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      
+      .code-lang {
+        display: block;
+        padding: 6px 12px;
+        background: #0f172a;
+        font-size: 11px;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      pre {
+        margin: 0;
+        padding: 12px 16px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #e2e8f0;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+    }
+    
+    :deep(.inline-code) {
+      background: rgba(139, 92, 246, 0.1);
+      color: #7c3aed;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+    
+    :deep(strong) {
+      font-weight: 700;
+      color: #1e293b;
+    }
+  }
+
+  // 流式输出光标
+  .streaming-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    background: #3b82f6;
+    border-radius: 1px;
+    animation: blink 1s step-end infinite;
+  }
 
   .typing-wrapper {
     position: relative;
@@ -2217,6 +2610,69 @@ onMounted(() => {
 }
 
 // 加载动画
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 4px;
+  
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    animation: thinkingBounce 1.4s ease-in-out infinite;
+    
+    &:nth-child(2) {
+      animation-delay: 0.16s;
+    }
+    
+    &:nth-child(3) {
+      animation-delay: 0.32s;
+    }
+  }
+}
+
+.thinking-text {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ai-icon.thinking {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes thinkingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
 .typing-indicator {
   display: flex;
   gap: 6px;

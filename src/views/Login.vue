@@ -916,10 +916,17 @@ onMounted(() => {
     border-color: #d1d5db;
     background: #f9fafb;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   
   &:active {
     transform: translateY(0);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 }
 

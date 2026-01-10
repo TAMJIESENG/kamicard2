@@ -234,11 +234,104 @@
           
           <!-- 卡密管理 -->
           <div v-if="activeMenu === 'cards'" class="admin-content">
+            <!-- 卡密状态概览 -->
+            <div class="card-status-overview">
+              <div class="status-card total" @click="cardFilterStatus = 'all'">
+                <div class="status-icon">
+                  <el-icon><Ticket /></el-icon>
+                </div>
+                <div class="status-info">
+                  <span class="status-value">{{ cardStats.total }}</span>
+                  <span class="status-label">全部卡密</span>
+                </div>
+              </div>
+              <div class="status-card unused" @click="cardFilterStatus = 'unused'">
+                <div class="status-icon">
+                  <el-icon><CircleCheck /></el-icon>
+                </div>
+                <div class="status-info">
+                  <span class="status-value">{{ cardStats.unused }}</span>
+                  <span class="status-label">未使用</span>
+                </div>
+              </div>
+              <div class="status-card used" @click="cardFilterStatus = 'used'">
+                <div class="status-icon">
+                  <el-icon><Select /></el-icon>
+                </div>
+                <div class="status-info">
+                  <span class="status-value">{{ cardStats.used }}</span>
+                  <span class="status-label">已使用</span>
+                </div>
+              </div>
+              <div class="status-card expiring" @click="cardFilterStatus = 'expiring'">
+                <div class="status-icon warning">
+                  <el-icon><Warning /></el-icon>
+                </div>
+                <div class="status-info">
+                  <span class="status-value">{{ cardStats.expiring }}</span>
+                  <span class="status-label">即将过期</span>
+                </div>
+                <el-badge v-if="cardStats.expiring > 0" :value="cardStats.expiring" class="status-badge" />
+              </div>
+              <div class="status-card expired" @click="cardFilterStatus = 'expired'">
+                <div class="status-icon danger">
+                  <el-icon><CircleClose /></el-icon>
+                </div>
+                <div class="status-info">
+                  <span class="status-value">{{ cardStats.expired }}</span>
+                  <span class="status-label">已过期</span>
+                </div>
+                <el-badge v-if="cardStats.expired > 0" :value="cardStats.expired" type="danger" class="status-badge" />
+              </div>
+            </div>
+
+            <!-- 过期/即将过期提醒 -->
+            <el-alert
+              v-if="cardStats.expired > 0 || cardStats.expiring > 0"
+              :title="getExpiryAlertTitle()"
+              :type="cardStats.expired > 0 ? 'error' : 'warning'"
+              show-icon
+              :closable="false"
+              class="expiry-alert"
+            >
+              <template #default>
+                <div class="expiry-alert-content">
+                  <span v-if="cardStats.expired > 0">{{ cardStats.expired }} 张卡密已过期</span>
+                  <span v-if="cardStats.expired > 0 && cardStats.expiring > 0">，</span>
+                  <span v-if="cardStats.expiring > 0">{{ cardStats.expiring }} 张卡密将在7天内过期</span>
+                  <div class="expiry-actions">
+                    <el-button size="small" type="danger" plain @click="handleCleanExpired" v-if="cardStats.expired > 0">
+                      清理过期卡密
+                    </el-button>
+                    <el-button size="small" type="warning" plain @click="cardFilterStatus = 'expiring'" v-if="cardStats.expiring > 0">
+                      查看即将过期
+                    </el-button>
+                  </div>
+                </div>
+              </template>
+            </el-alert>
+
             <el-card>
               <template #header>
                 <div class="card-header">
-                  <span>卡密列表</span>
+                  <div class="header-left">
+                    <span>卡密列表</span>
+                    <el-tag v-if="cardFilterStatus !== 'all'" :type="getFilterTagType()" size="small" closable @close="cardFilterStatus = 'all'" style="margin-left: 12px;">
+                      {{ getFilterTagText() }}
+                    </el-tag>
+                  </div>
                   <div class="header-actions">
+                    <el-input
+                      v-model="cardSearchQuery"
+                      placeholder="搜索卡号..."
+                      clearable
+                      style="width: 200px; margin-right: 12px;"
+                      size="default"
+                    >
+                      <template #prefix>
+                        <el-icon><Search /></el-icon>
+                      </template>
+                    </el-input>
                     <el-button 
                       v-if="selectedCards.length > 0"
                       type="danger" 
@@ -265,31 +358,66 @@
               </template>
               
               <el-table 
-                :data="cardList" 
+                :data="filteredCardList" 
                 style="width: 100%"
                 @selection-change="handleSelectionChange"
                 ref="cardTableRef"
+                :row-class-name="getCardRowClassName"
               >
                 <el-table-column 
                   type="selection" 
                   width="55"
                   :selectable="row => row.status === 'unused'"
                 />
-                <el-table-column prop="cardNumber" label="卡号" width="180" />
+                <el-table-column prop="cardNumber" label="卡号" width="180">
+                  <template #default="scope">
+                    <div class="card-number-cell">
+                      <span>{{ scope.row.cardNumber }}</span>
+                      <el-tooltip v-if="isCardExpired(scope.row)" content="已过期" placement="top">
+                        <el-icon class="expired-icon"><CircleClose /></el-icon>
+                      </el-tooltip>
+                      <el-tooltip v-else-if="isCardExpiring(scope.row)" content="即将过期" placement="top">
+                        <el-icon class="expiring-icon"><Warning /></el-icon>
+                      </el-tooltip>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="cardType" label="类型" width="100" />
                 <el-table-column prop="value" label="面值" width="100" />
                 <el-table-column prop="zoneName" label="所属专区" width="120" />
                 <el-table-column prop="productName" label="关联商品" width="160" />
-                <el-table-column prop="status" label="状态">
+                <el-table-column prop="status" label="状态" width="100">
                   <template #default="scope">
                     <el-tag :type="getCardStatusType(scope.row.status)">
                       {{ getCardStatusText(scope.row.status) }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="createTime" label="创建时间" />
-                <el-table-column prop="useTime" label="使用时间" />
-                <el-table-column label="操作" width="150">
+                <el-table-column label="过期状态" width="120">
+                  <template #default="scope">
+                    <el-tag v-if="isCardExpired(scope.row)" type="danger" size="small">
+                      已过期
+                    </el-tag>
+                    <el-tag v-else-if="isCardExpiring(scope.row)" type="warning" size="small">
+                      {{ getDaysUntilExpiry(scope.row) }}天后过期
+                    </el-tag>
+                    <el-tag v-else-if="scope.row.expireTime" type="success" size="small">
+                      正常
+                    </el-tag>
+                    <el-tag v-else type="info" size="small">
+                      永久有效
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="expireTime" label="过期时间" width="160">
+                  <template #default="scope">
+                    <span :class="{ 'text-danger': isCardExpired(scope.row), 'text-warning': isCardExpiring(scope.row) }">
+                      {{ scope.row.expireTime || '永久有效' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="创建时间" width="160" />
+                <el-table-column label="操作" width="150" fixed="right">
                   <template #default="scope">
                     <el-button type="primary" size="small" @click="viewCard(scope.row)">
                       查看
@@ -1318,7 +1446,7 @@ import {
   ArrowDown, User, Key, ShoppingCart, Wallet, Setting,
   Odometer, Bell, Service, Upload, Download, Plus, UploadFilled,
   DocumentChecked, Delete, Tools, Lock, CreditCard, Box, Unlock,
-  DocumentCopy, Ticket
+  DocumentCopy, Ticket, CircleCheck, CircleClose, Warning, Select, Search
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -1360,6 +1488,165 @@ const systemLogs = ref([])
 
 const userList = ref([])
 const cardList = ref([])
+const cardFilterStatus = ref('all')
+const cardSearchQuery = ref('')
+
+// 卡密统计数据
+const cardStats = reactive({
+  total: 0,
+  unused: 0,
+  used: 0,
+  sold: 0,
+  expiring: 0,  // 7天内过期
+  expired: 0
+})
+
+// 计算过滤后的卡密列表
+const filteredCardList = computed(() => {
+  let list = cardList.value
+  
+  // 按状态过滤
+  if (cardFilterStatus.value === 'unused') {
+    list = list.filter(card => card.status === 'unused')
+  } else if (cardFilterStatus.value === 'used') {
+    list = list.filter(card => card.status === 'used' || card.status === 'sold')
+  } else if (cardFilterStatus.value === 'expiring') {
+    list = list.filter(card => isCardExpiring(card) && !isCardExpired(card))
+  } else if (cardFilterStatus.value === 'expired') {
+    list = list.filter(card => isCardExpired(card))
+  }
+  
+  // 按搜索关键词过滤
+  if (cardSearchQuery.value.trim()) {
+    const query = cardSearchQuery.value.toLowerCase().trim()
+    list = list.filter(card => 
+      card.cardNumber?.toLowerCase().includes(query) ||
+      card.cardType?.toLowerCase().includes(query) ||
+      card.zoneName?.toLowerCase().includes(query) ||
+      card.productName?.toLowerCase().includes(query)
+    )
+  }
+  
+  return list
+})
+
+// 判断卡密是否已过期
+const isCardExpired = (card) => {
+  if (!card.expireTime) return false
+  const expireDate = new Date(card.expireTime)
+  return expireDate < new Date()
+}
+
+// 判断卡密是否即将过期（7天内）
+const isCardExpiring = (card) => {
+  if (!card.expireTime) return false
+  const expireDate = new Date(card.expireTime)
+  const now = new Date()
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  return expireDate > now && expireDate <= sevenDaysLater
+}
+
+// 获取距离过期的天数
+const getDaysUntilExpiry = (card) => {
+  if (!card.expireTime) return null
+  const expireDate = new Date(card.expireTime)
+  const now = new Date()
+  const diffTime = expireDate - now
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays > 0 ? diffDays : 0
+}
+
+// 更新卡密统计
+const updateCardStats = () => {
+  const cards = cardList.value
+  const now = new Date()
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  
+  cardStats.total = cards.length
+  cardStats.unused = cards.filter(c => c.status === 'unused').length
+  cardStats.used = cards.filter(c => c.status === 'used' || c.status === 'sold').length
+  cardStats.expired = cards.filter(c => {
+    if (!c.expireTime) return false
+    return new Date(c.expireTime) < now
+  }).length
+  cardStats.expiring = cards.filter(c => {
+    if (!c.expireTime) return false
+    const expireDate = new Date(c.expireTime)
+    return expireDate > now && expireDate <= sevenDaysLater
+  }).length
+}
+
+// 获取过期提醒标题
+const getExpiryAlertTitle = () => {
+  if (cardStats.expired > 0 && cardStats.expiring > 0) {
+    return '卡密过期提醒'
+  } else if (cardStats.expired > 0) {
+    return '存在已过期卡密'
+  } else {
+    return '卡密即将过期提醒'
+  }
+}
+
+// 获取过滤标签类型
+const getFilterTagType = () => {
+  const typeMap = {
+    unused: 'success',
+    used: 'info',
+    expiring: 'warning',
+    expired: 'danger'
+  }
+  return typeMap[cardFilterStatus.value] || 'info'
+}
+
+// 获取过滤标签文本
+const getFilterTagText = () => {
+  const textMap = {
+    unused: '未使用',
+    used: '已使用',
+    expiring: '即将过期',
+    expired: '已过期'
+  }
+  return textMap[cardFilterStatus.value] || ''
+}
+
+// 获取卡密行样式类名
+const getCardRowClassName = ({ row }) => {
+  if (isCardExpired(row)) return 'expired-row'
+  if (isCardExpiring(row)) return 'expiring-row'
+  return ''
+}
+
+// 清理过期卡密
+const handleCleanExpired = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除所有 ${cardStats.expired} 张已过期的卡密吗？此操作不可恢复！`,
+      '清理过期卡密',
+      {
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
+    const now = new Date()
+    const remainingCards = allCards.filter(card => {
+      if (!card.expireTime) return true
+      return new Date(card.expireTime) >= now
+    })
+    
+    const deletedCount = allCards.length - remainingCards.length
+    localStorage.setItem('all_cards', JSON.stringify(remainingCards))
+    
+    // 重新加载数据
+    loadRealData()
+    
+    ElMessage.success(`已清理 ${deletedCount} 张过期卡密`)
+  } catch {
+    // 用户取消
+  }
+}
 
 const userPagination = reactive({
   currentPage: 1,
@@ -2174,6 +2461,9 @@ const loadRealData = () => {
     cardList.value = allCards
     adminStats.totalCards = allCards.length
     
+    // 更新卡密统计
+    updateCardStats()
+    
     // 加载订单数据
     const allOrders = JSON.parse(localStorage.getItem('all_orders') || '[]')
     adminStats.totalOrders = allOrders.length
@@ -2928,6 +3218,193 @@ onMounted(() => {
       border: 1px solid #f5dab1;
       border-radius: 4px;
     }
+  }
+}
+
+// 卡密状态概览样式
+.card-status-overview {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  
+  .status-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      
+      .el-icon {
+        font-size: 24px;
+        color: white;
+      }
+    }
+    
+    .status-info {
+      flex: 1;
+      
+      .status-value {
+        display: block;
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.2;
+      }
+      
+      .status-label {
+        font-size: 13px;
+        color: #64748b;
+      }
+    }
+    
+    .status-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+    }
+    
+    &.total {
+      .status-icon { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+      &:hover { border-color: #6366f1; }
+    }
+    
+    &.unused {
+      .status-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+      &:hover { border-color: #10b981; }
+    }
+    
+    &.used {
+      .status-icon { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+      &:hover { border-color: #3b82f6; }
+    }
+    
+    &.expiring {
+      .status-icon.warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+      &:hover { border-color: #f59e0b; }
+    }
+    
+    &.expired {
+      .status-icon.danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+      &:hover { border-color: #ef4444; }
+    }
+  }
+}
+
+// 过期提醒样式
+.expiry-alert {
+  margin-bottom: 20px;
+  border-radius: 12px;
+  
+  .expiry-alert-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    
+    .expiry-actions {
+      display: flex;
+      gap: 8px;
+    }
+  }
+}
+
+// 卡密表格行样式
+:deep(.el-table) {
+  .expired-row {
+    background-color: #fef2f2 !important;
+    
+    td {
+      background-color: #fef2f2 !important;
+    }
+  }
+  
+  .expiring-row {
+    background-color: #fffbeb !important;
+    
+    td {
+      background-color: #fffbeb !important;
+    }
+  }
+}
+
+// 卡号单元格样式
+.card-number-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .expired-icon {
+    color: #ef4444;
+    font-size: 16px;
+  }
+  
+  .expiring-icon {
+    color: #f59e0b;
+    font-size: 16px;
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+// 文字颜色
+.text-danger {
+  color: #ef4444 !important;
+  font-weight: 500;
+}
+
+.text-warning {
+  color: #f59e0b !important;
+  font-weight: 500;
+}
+
+// 卡片头部左侧
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+// 响应式
+@media (max-width: 1400px) {
+  .card-status-overview {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .card-status-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .card-status-overview {
+    grid-template-columns: 1fr;
   }
 }
 </style>

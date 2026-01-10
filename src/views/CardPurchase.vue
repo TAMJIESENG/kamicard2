@@ -1,24 +1,28 @@
 <template>
-  <div class="card-purchase">
-    <!-- 企业级导航栏 -->
-    <div class="enterprise-navbar">
+  <div class="card-purchase-page">
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+    </div>
+
+    <!-- 顶部导航 -->
+    <nav class="top-nav">
       <div class="nav-container">
         <div class="nav-brand">
           <div class="brand-icon">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
           </div>
-          <span class="brand-text">CardKey<span class="pro-suffix">Enterprise</span></span>
+          <span class="brand-text">CardKey<span class="brand-suffix">Pro</span></span>
         </div>
+        
         <div class="nav-search">
           <el-input
             v-model="searchQuery"
-            placeholder="搜索企业级数字商品..."
+            placeholder="搜索商品..."
             clearable
-            class="enterprise-search"
             size="large"
           >
             <template #prefix>
@@ -26,387 +30,168 @@
             </template>
           </el-input>
         </div>
+
         <div class="nav-actions">
-          <div class="user-badge">
-            <el-avatar :size="32" :src="userStore.user?.avatar || ''" class="user-avatar">
-              <template v-if="!userStore.user?.avatar">
-                {{ userStore.user?.username?.charAt(0)?.toUpperCase() || 'U' }}
-              </template>
+          <div class="user-info">
+            <el-avatar :size="32" :src="userStore.user?.avatar">
+              {{ userStore.user?.username?.charAt(0)?.toUpperCase() || 'U' }}
             </el-avatar>
             <span class="user-name">{{ userStore.user?.username || 'Guest' }}</span>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 页面头部 -->
-    <div class="page-hero">
-      <div class="hero-background">
-        <div class="hero-pattern"></div>
-        <div class="hero-gradient"></div>
-      </div>
-      <div class="hero-content">
-        <div class="hero-text">
-          <div class="hero-badge">
-            <span class="badge-icon">🏢</span>
-            <span>Enterprise Digital Commerce</span>
-          </div>
-          <h1 class="hero-title">
-            专业级数字卡密
-            <span class="title-gradient">交易平台</span>
-          </h1>
-          <p class="hero-subtitle">
-            为企业客户提供安全、高效、专业的数字商品交易服务
-            <br/>支持批量采购、企业级安全认证、实时API对接
-          </p>
-          <div class="hero-stats">
-            <div class="stat-item">
-              <div class="stat-number">500+</div>
-              <div class="stat-label">企业客户</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">1M+</div>
-              <div class="stat-label">成功交易</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">99.99%</div>
-              <div class="stat-label">系统可用性</div>
-            </div>
+          <div class="cart-btn" @click="showCartSidebar = true">
+            <el-badge :value="cartItems.length" :hidden="!cartItems.length">
+              <el-icon :size="20"><ShoppingCart /></el-icon>
+            </el-badge>
           </div>
         </div>
       </div>
-    </div>
+    </nav>
 
-    <!-- 企业级分类导航 -->
-    <div class="category-navigation">
-      <div class="nav-container">
-        <div class="category-header">
-          <h2>产品分类</h2>
-          <p>选择您的业务需求分类</p>
-        </div>
-        <div class="category-grid">
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 分类导航 -->
+      <section class="category-section">
+        <div class="category-scroll">
           <div
-            v-for="zone in zones"
+            v-for="(zone, index) in zones"
             :key="zone.id"
-            class="category-card"
+            class="category-chip animate-fade-in"
             :class="{ active: activeZone === zone.id }"
+            :style="{ '--delay': (index * 0.05) + 's' }"
             @click="switchZone(zone.id)"
           >
-            <div class="category-icon">
-              <div class="icon-wrapper">
-                <!-- 显示自定义图标或emoji图标 -->
-                <span v-if="!zone.customIcon || zone.customIcon.trim() === ''">{{ zone.icon || '🎯' }}</span>
-                <img v-else :src="zone.customIcon" :alt="zone.name" class="custom-zone-icon" @error="handleIconError(zone)" />
-              </div>
-            </div>
-            <div class="category-info">
-              <h3>{{ zone.name }}</h3>
-              <p class="category-desc">{{ zone.description || '专业数字商品解决方案' }}</p>
-              <div class="category-meta">
-                <span class="product-count">{{ zone.productCount }} 款产品</span>
-                <span class="availability">现货充足</span>
-              </div>
-            </div>
-            <div class="category-arrow">
-              <el-icon><ArrowRight /></el-icon>
-            </div>
+            <span class="chip-icon">
+              <span v-if="!zone.customIcon">{{ zone.icon || '🎯' }}</span>
+              <img v-else :src="zone.customIcon" :alt="zone.name" @error="handleIconError(zone)" />
+            </span>
+            <span class="chip-text">{{ zone.name }}</span>
+            <span class="chip-count">{{ zone.productCount }}</span>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- 企业级筛选器 -->
-    <div class="enterprise-filters">
-      <div class="filters-container">
-        <div class="filters-left">
-          <div class="filter-section">
-            <h3>价格范围</h3>
-            <el-select v-model="priceFilter" placeholder="选择价格范围" clearable size="large">
-              <el-option label="全部价格" value="" />
-              <el-option label="¥0-50" value="0-50" />
-              <el-option label="¥50-100" value="50-100" />
-              <el-option label="¥100-500" value="100-500" />
-              <el-option label="¥500+" value="500+" />
-            </el-select>
-          </div>
-          
-          <div class="filter-section">
-            <h3>排序方式</h3>
-            <el-select v-model="sortOrder" placeholder="选择排序" size="large">
-              <el-option label="智能推荐" value="recommended" />
-              <el-option label="价格优先" value="price-asc" />
-              <el-option label="高端优先" value="price-desc" />
-              <el-option label="最新上架" value="newest" />
-              <el-option label="热销精选" value="sales" />
-            </el-select>
-          </div>
+      <!-- 筛选栏 -->
+      <section class="filter-section animate-fade-in" style="--delay: 0.3s">
+        <div class="filter-left">
+          <el-select v-model="priceFilter" placeholder="价格" clearable size="default">
+            <el-option label="全部" value="" />
+            <el-option label="¥0-50" value="0-50" />
+            <el-option label="¥50-100" value="50-100" />
+            <el-option label="¥100-500" value="100-500" />
+            <el-option label="¥500+" value="500+" />
+          </el-select>
+          <el-select v-model="sortOrder" placeholder="排序" size="default">
+            <el-option label="推荐" value="recommended" />
+            <el-option label="价格↑" value="price-asc" />
+            <el-option label="价格↓" value="price-desc" />
+            <el-option label="最新" value="newest" />
+            <el-option label="热销" value="sales" />
+          </el-select>
         </div>
-        
-        <div class="filters-right">
-          <div class="results-summary">
-            <div class="summary-badge">
-              <span class="count">{{ filteredProducts.length }}</span>
-              <span class="label">款企业级产品</span>
-            </div>
-            <div class="quality-badge">
-              <span class="icon">✓</span>
-              <span>全部现货</span>
-            </div>
-          </div>
+        <div class="filter-right">
+          <span class="result-count">{{ filteredProducts.length }} 款商品</span>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- 企业级产品展示 -->
-    <div class="products-showcase">
-      <div class="showcase-container">
+      <!-- 商品网格 -->
+      <section class="products-section" ref="productsSection">
         <div class="products-grid" v-loading="loading">
-          <div 
-            v-for="product in paginatedProducts" 
+          <div
+            v-for="(product, index) in paginatedProducts"
             :key="product.id"
-            class="enterprise-product-card"
-            :class="{ 'out-of-stock': product.stock === 0 }"
+            class="product-card"
+            :class="{ 'out-of-stock': product.stock === 0, 'animate-in': productsVisible }"
+            :style="{ '--delay': (index % 12 * 0.05) + 's' }"
           >
-            <div class="card-image-section">
-              <div class="image-container">
-                <img 
-                  :src="product.image || '/ceshi/default-product.jpg'" 
-                  :alt="product.name"
-                  @error="handleImageError"
-                />
-                <div class="image-overlay">
-                  <div class="overlay-content">
-                    <el-button type="primary" size="large" circle @click="showProductDetails(product)">
-                      <el-icon><View /></el-icon>
-                    </el-button>
-                    <span class="overlay-text">查看详情</span>
-                  </div>
-                </div>
+            <!-- 商品图片 -->
+            <div class="card-image" @click="showProductDetails(product)">
+              <img :src="product.image || DEFAULT_PRODUCT_IMAGE" :alt="product.name" @error="handleImageError" />
+              <div class="image-overlay">
+                <el-icon :size="24"><View /></el-icon>
               </div>
-              
-              <div class="status-badges">
-                <div v-if="product.isHot" class="status-badge hot">
-                  <span class="badge-icon">🔥</span>
-                  <span class="badge-text">企业热销</span>
-                </div>
-                <div v-if="product.isNew" class="status-badge new">
-                  <span class="badge-icon">✨</span>
-                  <span class="badge-text">新品上市</span>
-                </div>
-                <div v-if="product.stock === 0" class="status-badge sold-out">
-                  <span class="badge-text">暂时售罄</span>
-                </div>
-                <div v-if="product.stock > 0 && product.stock <= 10" class="status-badge limited">
-                  <span class="badge-text">优先供应</span>
-                </div>
+              <div class="card-badges">
+                <span v-if="product.isHot" class="badge hot">热销</span>
+                <span v-if="product.isNew" class="badge new">新品</span>
+                <span v-if="product.stock === 0" class="badge sold-out">售罄</span>
               </div>
             </div>
-            
-            <div class="card-content-section">
-              <div class="content-header">
-                <div class="product-title-area">
-                  <h3 class="product-title" :title="product.name">{{ product.name }}</h3>
-                  <div class="title-underline"></div>
+
+            <!-- 商品信息 -->
+            <div class="card-content">
+              <h3 class="product-name" :title="product.name">{{ product.name }}</h3>
+              <p class="product-desc">{{ product.description }}</p>
+              
+              <div class="product-meta">
+                <el-rate v-model="product.rating" disabled size="small" />
+                <span class="stock-info">库存 {{ product.stock }}</span>
+              </div>
+
+              <!-- 价格区域 -->
+              <div class="price-area">
+                <div v-if="userVipInfo.level > 0" class="vip-price">
+                  <span class="current">¥{{ calculateProductPrice(product, 1).finalTotal.toFixed(2) }}</span>
+                  <span class="original">¥{{ product.price.toFixed(2) }}</span>
+                  <el-tag size="small" :type="userVipInfo.level === 2 ? 'danger' : 'warning'">
+                    {{ userVipInfo.name }}
+                  </el-tag>
                 </div>
-                <div class="product-rating">
-                  <el-rate 
-                    v-model="product.rating" 
-                    disabled 
-                    show-score 
-                    text-color="#f59e0b"
-                    score-template="{value}"
-                    size="small"
-                  />
+                <div v-else class="normal-price">
+                  <span class="current">¥{{ product.price.toFixed(2) }}</span>
                 </div>
               </div>
-              
-              <p class="product-summary">{{ product.description }}</p>
-              
-              <div class="product-specifications">
-                <div class="spec-grid">
-                  <div class="spec-card">
-                    <div class="spec-icon">💼</div>
-                    <div class="spec-details">
-                      <div class="spec-label">产品类型</div>
-                      <div class="spec-value">{{ product.type }}</div>
-                    </div>
-                  </div>
-                  <div class="spec-card">
-                    <div class="spec-icon">⏰</div>
-                    <div class="spec-details">
-                      <div class="spec-label">服务周期</div>
-                      <div class="spec-value">{{ product.validity }}</div>
-                    </div>
-                  </div>
-                  <div class="spec-card">
-                    <div class="spec-icon">📦</div>
-                    <div class="spec-details">
-                      <div class="spec-label">库存情况</div>
-                      <div class="spec-value" :class="{ 'limited-stock': product.stock <= 10 }">
-                        {{ product.stock }} 件
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="pricing-section">
-                <div class="enterprise-pricing">
-                  <div v-if="userVipInfo.level > 0" class="vip-pricing">
-                    <div class="pricing-header">
-                      <span class="pricing-label">VIP企业价</span>
-                      <el-tag 
-                        size="small" 
-                        :type="userVipInfo.level === 1 ? 'warning' : ''"
-                        :color="userVipInfo.level === 2 ? '#9333ea' : ''"
-                        class="discount-tag"
-                      >
-                        {{ userVipInfo.name }}{{ (10 - userVipInfo.discount * 10).toFixed(1) }}折
-                      </el-tag>
-                    </div>
-                    <div class="pricing-main">
-                      <div class="current-price">¥{{ calculateProductPrice(product, 1).finalTotal.toFixed(2) }}</div>
-                      <div class="price-comparison">
-                        <span class="original-price">原价: ¥{{ calculateProductPrice(product, 1).actualPrice.toFixed(2) }}</span>
-                        <span class="savings-badge">省¥{{ calculateProductPrice(product, 1).totalSavings.toFixed(2) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else class="standard-pricing">
-                    <div class="pricing-main">
-                      <div class="current-price">¥{{ product.price.toFixed(2) }}</div>
-                      <div class="upgrade-prompt">
-                        <router-link to="/vip" class="upgrade-link">
-                          <span class="icon">⭐</span>
-                          升级VIP享优惠
-                        </router-link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="action-controls">
-                  <div class="quantity-selector">
-                    <label class="quantity-label">数量：</label>
-                    <el-input-number
-                      v-model="product.quantity"
-                      :min="1"
-                      :max="Math.min(product.stock || 99, 99)"
-                      :disabled="!product.stock || product.stock === 0"
-                      size="large"
-                      class="quantity-input"
-                    />
-                  </div>
-                  
-                  <div class="action-buttons">
-                    <el-button 
-                      @click="showProductDetails(product)"
-                      size="large"
-                      class="enterprise-btn detail-btn"
-                    >
-                      <el-icon><View /></el-icon>
-                      查看详情
-                    </el-button>
-                    <el-button 
-                      type="primary" 
-                      @click="addToCart(product)"
-                      :disabled="product.stock === 0"
-                      size="large"
-                      class="enterprise-btn cart-btn"
-                    >
-                      <el-icon><ShoppingCart /></el-icon>
-                      加入购物车
-                    </el-button>
-                    <el-button 
-                      type="success" 
-                      @click="buyNow(product)"
-                      :disabled="product.stock === 0"
-                      size="large"
-                      class="enterprise-btn buy-btn"
-                    >
-                      立即购买
-                    </el-button>
-                    <el-button 
-                      type="warning" 
-                      @click="openReviewDialog(product)"
-                      size="large"
-                      class="enterprise-btn review-btn"
-                    >
-                      <el-icon><Edit /></el-icon>
-                      评价商品
-                    </el-button>
-                  </div>
-                </div>
+
+              <!-- 操作按钮 -->
+              <div class="card-actions">
+                <el-button type="primary" :disabled="product.stock === 0" @click="buyNow(product)">
+                  立即购买
+                </el-button>
+                <el-button :disabled="product.stock === 0" @click="addToCart(product)">
+                  <el-icon><ShoppingCart /></el-icon>
+                </el-button>
               </div>
             </div>
           </div>
-        
-        <!-- 空状态 -->
-        <div v-if="filteredProducts.length === 0 && !loading" class="empty-state">
-          <div class="empty-icon">📦</div>
-          <h3>暂无商品</h3>
-          <p>当前专区暂时没有商品，请切换到其他专区查看</p>
-        </div>
-      </div>
-    </div>
-  </div>
 
-    <!-- 分页器 -->
-    <div class="pagination-container" v-if="filteredProducts.length > 0">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[12, 24, 48, 96]"
-        :total="filteredProducts.length"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
+          <!-- 空状态 -->
+          <div v-if="filteredProducts.length === 0 && !loading" class="empty-state">
+            <el-icon :size="64"><Box /></el-icon>
+            <h3>暂无商品</h3>
+            <p>当前分类暂无商品，请切换其他分类</p>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination-wrap" v-if="filteredProducts.length > 0">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[12, 24, 48]"
+            :total="filteredProducts.length"
+            layout="total, sizes, prev, pager, next"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </section>
+    </main>
 
     <!-- 购物车侧边栏 -->
-    <div class="cart-sidebar" :class="{ active: showCartSidebar }">
-      <div class="cart-header">
-        <h3>🛒 购物车 ({{ cartItems.length }})</h3>
-        <el-button 
-          type="text" 
-          @click="showCartSidebar = false"
-          class="close-cart-btn"
-        >
-          <el-icon><Close /></el-icon>
-        </el-button>
-      </div>
-      
+    <el-drawer v-model="showCartSidebar" title="购物车" direction="rtl" size="380px">
       <div class="cart-content">
         <div v-if="cartItems.length === 0" class="cart-empty">
-          <div class="empty-cart-icon">🛒</div>
+          <el-icon :size="48"><ShoppingCart /></el-icon>
           <p>购物车是空的</p>
         </div>
         
         <div v-else class="cart-items">
-          <div 
-            v-for="item in cartItems" 
-            :key="item.id"
-            class="cart-item"
-          >
-            <img :src="item.image || '/ceshi/default-product.jpg'" :alt="item.name" class="cart-item-image" />
-            <div class="cart-item-info">
-              <h4 class="cart-item-name">{{ item.name }}</h4>
-              <div class="cart-item-controls">
-                <el-input-number
-                  v-model="item.quantity"
-                  :min="1"
-                  :max="item.stock || 99"
-                  size="small"
-                  @change="updateCartItem(item)"
-                />
-                <span class="cart-item-price">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
-                <el-button 
-                  type="text" 
-                  size="small" 
-                  @click="removeFromCart(item.id)"
-                  class="remove-item-btn"
-                >
+          <div v-for="item in cartItems" :key="item.id" class="cart-item">
+            <img :src="item.image || DEFAULT_PRODUCT_IMAGE" :alt="item.name" />
+            <div class="item-info">
+              <h4>{{ item.name }}</h4>
+              <div class="item-price">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
+              <div class="item-controls">
+                <el-input-number v-model="item.quantity" :min="1" :max="item.stock" size="small" />
+                <el-button type="danger" text size="small" @click="removeFromCart(item.id)">
                   <el-icon><Delete /></el-icon>
                 </el-button>
               </div>
@@ -415,899 +200,252 @@
         </div>
       </div>
       
-      <div v-if="cartItems.length > 0" class="cart-footer">
-        <!-- 优惠券输入区域 -->
-        <div class="cart-coupon-section">
-          <div class="coupon-header">
-            <span class="coupon-label">优惠券</span>
-            <el-button 
-              v-if="selectedCoupon" 
-              type="text" 
-              size="small" 
-              @click="removeCoupon"
-              class="remove-coupon-btn"
-            >
-              移除
-            </el-button>
+      <template #footer v-if="cartItems.length > 0">
+        <div class="cart-footer">
+          <div class="cart-total">
+            <span>合计</span>
+            <span class="total-price">¥{{ cartTotal.toFixed(2) }}</span>
           </div>
-          
-          <!-- 已选择的优惠券 -->
-          <div v-if="selectedCoupon" class="selected-coupon-card">
-            <div class="coupon-info">
-              <div class="coupon-name">{{ selectedCoupon.name }}</div>
-              <div class="coupon-code">{{ selectedCoupon.code }}</div>
-            </div>
-            <div class="coupon-discount">
-              -¥{{ couponDiscount.toFixed(2) }}
-            </div>
-          </div>
-          
-          <!-- 优惠券输入 -->
-          <div v-else class="coupon-input-area">
-            <el-input
-              v-model="couponCode"
-              placeholder="输入优惠券代码"
-              size="small"
-              :disabled="couponValidationLoading"
-              @keyup.enter="validateCouponCode"
-            >
-              <template #append>
-                <el-button 
-                  size="small" 
-                  :loading="couponValidationLoading"
-                  @click="validateCouponCode"
-                >
-                  验证
-                </el-button>
-              </template>
-            </el-input>
-            
-            <!-- 验证消息 -->
-            <div v-if="couponValidationMessage" class="coupon-message" :class="{
-              'success': selectedCoupon,
-              'error': !selectedCoupon && couponValidationMessage
-            }">
-              {{ couponValidationMessage }}
-            </div>
-          </div>
-        </div>
-        
-        <!-- 价格汇总 -->
-        <div class="cart-total">
-          <div class="total-row">
-            <span class="total-label">商品总价：</span>
-            <span class="total-amount">¥{{ cartTotal.toFixed(2) }}</span>
-          </div>
-          <div v-if="couponDiscount > 0" class="total-row discount-row">
-            <span class="total-label">优惠折扣：</span>
-            <span class="discount-amount">-¥{{ couponDiscount.toFixed(2) }}</span>
-          </div>
-          <div class="total-row final-total">
-            <span class="total-label">应付金额：</span>
-            <span class="final-amount">¥{{ finalPaymentAmount.toFixed(2) }}</span>
-          </div>
-        </div>
-        
-        <el-button 
-          type="primary" 
-          @click="proceedToCheckout"
-          class="checkout-btn"
-          size="large"
-        >
-          立即结算
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 购物车遮罩 -->
-    <div 
-      v-if="showCartSidebar" 
-      class="cart-overlay"
-      @click="showCartSidebar = false"
-    ></div>
-
-    <!-- 购物车浮动按钮 -->
-    <div class="floating-cart" @click="showCartSidebar = true">
-      <el-badge :value="cartItems.length" :hidden="cartItems.length === 0">
-        <el-button type="primary" size="large" circle>
-          <el-icon><ShoppingCart /></el-icon>
-        </el-button>
-      </el-badge>
-    </div>
-
-    <!-- 批量购买确认对话框 -->
-    <el-dialog
-      v-model="showBatchPurchaseDialog"
-      title="批量购买确认"
-      width="600px"
-      :close-on-click-modal="false"
-      class="batch-purchase-dialog"
-    >
-      <div class="batch-purchase-content">
-        <div class="purchase-summary">
-          <h4>购买清单</h4>
-          <div class="items-list">
-            <div 
-              v-for="item in cartItems" 
-              :key="item.id"
-              class="purchase-item"
-            >
-              <div class="item-info">
-                <img :src="item.image || '/ceshi/default-product.jpg'" :alt="item.name" class="item-image" />
-                <div class="item-details">
-                  <h5>{{ item.name }}</h5>
-                  <p>单价：¥{{ item.price.toFixed(2) }}</p>
-                </div>
-              </div>
-              <div class="item-quantity">
-                <span>×{{ item.quantity }}</span>
-              </div>
-              <div class="item-total">
-                ¥{{ (item.price * item.quantity).toFixed(2) }}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="payment-summary">
-          <div class="summary-row">
-            <span>商品总价：</span>
-            <span>¥{{ cartTotal.toFixed(2) }}</span>
-          </div>
-          <div class="summary-row">
-            <span>优惠折扣：</span>
-            <span class="discount">-¥{{ couponDiscount.toFixed(2) }}</span>
-          </div>
-          <div class="summary-row total-row">
-            <span>应付金额：</span>
-            <span class="total-amount">¥{{ finalPaymentAmount.toFixed(2) }}</span>
-          </div>
-          <div class="summary-row">
-            <span>当前余额：</span>
-            <span class="balance">¥{{ (userStore.user?.balance || 0).toFixed(2) }}</span>
-          </div>
-        </div>
-        
-        <!-- 优惠券选择区域 -->
-        <div class="coupon-section">
-          <h5>优惠券</h5>
-          
-          <!-- 已选择的优惠券 -->
-          <div v-if="selectedCoupon" class="selected-coupon">
-            <div class="coupon-card selected">
-              <div class="coupon-info">
-                <div class="coupon-name">{{ selectedCoupon.name }}</div>
-                <div class="coupon-desc">{{ getCouponDescription(selectedCoupon) }}</div>
-                <div class="coupon-code">代码：{{ selectedCoupon.code }}</div>
-              </div>
-              <div class="coupon-discount">
-                <span class="discount-amount">-¥{{ couponDiscount.toFixed(2) }}</span>
-              </div>
-              <el-button 
-                type="text" 
-                size="small" 
-                @click="removeCoupon"
-                class="remove-coupon-btn"
-              >
-                <el-icon><Close /></el-icon>
-              </el-button>
-            </div>
-          </div>
-          
-          <!-- 优惠券输入 -->
-          <div v-else class="coupon-input-section">
-            <div class="coupon-input-group">
-              <el-input
-                v-model="couponCode"
-                placeholder="请输入优惠券代码"
-                size="large"
-                :disabled="couponValidationLoading"
-                @keyup.enter="validateCouponCode"
-              >
-                <template #append>
-                  <el-button 
-                    type="primary" 
-                    :loading="couponValidationLoading"
-                    @click="validateCouponCode"
-                  >
-                    验证
-                  </el-button>
-                </template>
-              </el-input>
-            </div>
-            
-            <!-- 验证消息 -->
-            <div v-if="couponValidationMessage" class="coupon-message" :class="{
-              'success': selectedCoupon,
-              'error': !selectedCoupon && couponValidationMessage
-            }">
-              {{ couponValidationMessage }}
-            </div>
-            
-            <!-- 可用优惠券列表 -->
-            <div v-if="availableCoupons.length > 0" class="available-coupons">
-              <div class="coupons-title">可用优惠券：</div>
-              <div class="coupons-list">
-                <div 
-                  v-for="coupon in availableCoupons.slice(0, 3)" 
-                  :key="coupon.id"
-                  class="coupon-card available"
-                  @click="selectAvailableCoupon(coupon)"
-                >
-                  <div class="coupon-info">
-                    <div class="coupon-name">{{ coupon.name }}</div>
-                    <div class="coupon-desc">{{ getCouponDescription(coupon) }}</div>
-                    <div class="coupon-code">{{ coupon.code }}</div>
-                  </div>
-                  <div class="coupon-action">
-                    <el-button type="primary" size="small">使用</el-button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="payment-method">
-          <h5>支付方式</h5>
-          <el-radio-group v-model="selectedPaymentMethod" class="payment-options">
-            <el-radio value="balance" class="payment-option">
-              <div class="payment-method-content">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11.8,10.9c-2.27-0.59-3-1.2-3-2.15c0-1.09,1.01-1.85,2.7-1.85c1.78,0,2.44,0.85,2.5,2.1h2.21c-0.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94,0.42-3.5,1.68-3.5,3.61c0,2.31,1.91,3.46,4.7,4.13c2.5,0.6,3,1.48,3,2.41c0,0.69-0.49,1.79-2.7,1.79c-2.06,0-2.87-0.92-2.98-2.1h-2.2c0.12,2.19,1.76,3.42,3.68,3.83V21h3v-2.15c1.95-0.37,3.5-1.5,3.5-3.55C15.8,12.85,14.07,11.66,11.8,10.9z"/>
-                </svg>
-                <div>
-                  <div class="method-name">余额支付</div>
-                  <div class="balance-info">当前余额：¥{{ (userStore.user?.balance || 0).toFixed(2) }}</div>
-                </div>
-              </div>
-            </el-radio>
-          </el-radio-group>
-        </div>
-      </div>
-      
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="showBatchPurchaseDialog = false">取消</el-button>
-          <el-button 
-            type="primary" 
-            :loading="batchPurchaseLoading"
-            @click="confirmBatchPurchase"
-            :disabled="!selectedPaymentMethod"
-          >
-            确认购买
+          <el-button type="primary" size="large" @click="proceedToCheckout">
+            结算 ({{ cartItems.length }})
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
     <!-- 商品详情弹窗 -->
-    <el-dialog 
-      v-model="showProductDetailDialog" 
-      :title="currentDetailProduct?.name || '商品详情'" 
-      width="90%"
-      :max-width="1200"
-      class="product-detail-dialog"
-      :before-close="closeProductDetail"
-    >
-      <div v-if="currentDetailProduct" class="product-detail-content">
-        <!-- 详情头部 -->
-        <div class="detail-header">
-          <div class="detail-images">
-            <div class="main-image">
-              <img 
-                :src="currentDetailImage || currentDetailProduct.image || '/ceshi/default-product.jpg'" 
-                :alt="currentDetailProduct.name"
-                @error="handleImageError"
-              />
-            </div>
-            <div class="image-thumbnails">
-              <div 
-                v-for="(image, index) in getProductImages(currentDetailProduct)" 
-                :key="index"
-                class="thumbnail"
-                :class="{ active: currentDetailImage === image }"
-                @click="currentDetailImage = image"
-              >
-                <img :src="image" :alt="`${currentDetailProduct.name} 图片 ${index + 1}`" />
-              </div>
-            </div>
+    <el-dialog v-model="showProductDetailDialog" :title="currentDetailProduct?.name" width="800px" class="detail-dialog">
+      <div v-if="currentDetailProduct" class="detail-content">
+        <div class="detail-left">
+          <img :src="currentDetailProduct.image || DEFAULT_PRODUCT_IMAGE" :alt="currentDetailProduct.name" />
+        </div>
+        <div class="detail-right">
+          <div class="detail-badges">
+            <el-tag v-if="currentDetailProduct.isHot" type="danger" size="small">热销</el-tag>
+            <el-tag v-if="currentDetailProduct.isNew" type="primary" size="small">新品</el-tag>
+          </div>
+          <h2>{{ currentDetailProduct.name }}</h2>
+          <p class="detail-desc">{{ currentDetailProduct.description }}</p>
+          
+          <div class="detail-rating">
+            <el-rate v-model="currentDetailProduct.rating" disabled />
+            <span>({{ currentDetailProduct.reviewCount || 0 }}条评价)</span>
           </div>
           
-          <div class="detail-info">
-            <div class="product-title-section">
-              <h1>{{ currentDetailProduct.name }}</h1>
-              <div class="product-badges">
-                <el-tag v-if="currentDetailProduct.isHot" type="danger" size="small">🔥 企业热销</el-tag>
-                <el-tag v-if="currentDetailProduct.isNew" type="primary" size="small">✨ 新品上市</el-tag>
-                <el-tag v-if="currentDetailProduct.stock <= 10" type="warning" size="small">📦 优先供应</el-tag>
-              </div>
-            </div>
-            
-            <div class="rating-section">
-              <el-rate 
-                v-model="currentDetailProduct.rating" 
-                disabled 
-                show-score 
-                text-color="#f59e0b"
-                score-template="{value} 分"
-              />
-              <span class="review-count">({{ currentDetailProduct.reviewCount || 128 }}条评价)</span>
-            </div>
-            
-            <div class="price-section-detail">
-              <div v-if="userVipInfo.level > 0" class="vip-price-detail">
-                <div class="price-main">
-                  <span class="current-price">¥{{ calculateProductPrice(currentDetailProduct, 1).finalTotal.toFixed(2) }}</span>
-                  <span class="original-price">原价: ¥{{ calculateProductPrice(currentDetailProduct, 1).actualPrice.toFixed(2) }}</span>
-                </div>
-                <div class="vip-benefits">
-                  <el-tag type="success" size="small">
-                    {{ userVipInfo.name }}专享 {{ (10 - userVipInfo.discount * 10).toFixed(1) }}折优惠
-                  </el-tag>
-                  <span class="savings">立省 ¥{{ calculateProductPrice(currentDetailProduct, 1).totalSavings.toFixed(2) }}</span>
-                </div>
-              </div>
-              <div v-else class="standard-price-detail">
-                <span class="current-price">¥{{ currentDetailProduct.price.toFixed(2) }}</span>
-                <div class="upgrade-hint">
-                  <router-link to="/vip" class="vip-upgrade">
-                    <el-icon><Star /></el-icon>
-                    升级VIP享受企业级优惠
-                  </router-link>
-                </div>
-              </div>
-            </div>
-            
-            <div class="stock-section">
-              <div class="stock-info">
-                <span class="stock-label">库存状态:</span>
-                <span class="stock-value" :class="{ 'low-stock': currentDetailProduct.stock <= 10 }">
-                  {{ currentDetailProduct.stock > 0 ? `现货${currentDetailProduct.stock}件` : '暂时缺货' }}
-                </span>
-              </div>
-              <div class="delivery-info">
-                <el-icon><Check /></el-icon>
-                <span>企业级服务 • 即时交付 • 7×24技术支持</span>
-              </div>
-            </div>
+          <div class="detail-price">
+            <span class="price-label">价格</span>
+            <span class="price-value">¥{{ calculateProductPrice(currentDetailProduct, 1).finalTotal.toFixed(2) }}</span>
+            <span v-if="userVipInfo.level > 0" class="price-original">¥{{ currentDetailProduct.price.toFixed(2) }}</span>
           </div>
-        </div>
-        
-        <!-- 详情标签页 -->
-        <div class="detail-tabs">
-          <el-tabs v-model="activeDetailTab" class="detail-tab-container">
-            <el-tab-pane label="产品详情" name="details">
-              <div class="product-details">
-                <div class="detail-section">
-                  <h3>产品描述</h3>
-                  <p>{{ currentDetailProduct.description || '专业的企业级数字商品解决方案，为您的业务提供安全、可靠、高效的服务体验。' }}</p>
-                </div>
-                
-                <div class="detail-section">
-                  <h3>产品规格</h3>
-                  <div class="specs-table">
-                    <div class="spec-row">
-                      <span class="spec-key">产品类型</span>
-                      <span class="spec-value">{{ currentDetailProduct.type || '企业级数字商品' }}</span>
-                    </div>
-                    <div class="spec-row">
-                      <span class="spec-key">服务周期</span>
-                      <span class="spec-value">{{ currentDetailProduct.validity || '长期有效' }}</span>
-                    </div>
-                    <div class="spec-row">
-                      <span class="spec-key">交付方式</span>
-                      <span class="spec-value">即时自动交付</span>
-                    </div>
-                    <div class="spec-row">
-                      <span class="spec-key">技术支持</span>
-                      <span class="spec-value">7×24小时在线服务</span>
-                    </div>
-                    <div class="spec-row">
-                      <span class="spec-key">安全保障</span>
-                      <span class="spec-value">企业级安全认证</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="detail-section">
-                  <h3>服务优势</h3>
-                  <div class="advantages-list">
-                    <div class="advantage-item">
-                      <el-icon><Lock /></el-icon>
-                      <div>
-                        <h4>安全可靠</h4>
-                        <p>采用银行级安全标准，确保数据安全和交易可靠性</p>
-                      </div>
-                    </div>
-                    <div class="advantage-item">
-                      <el-icon><Setting /></el-icon>
-                      <div>
-                        <h4>即时交付</h4>
-                        <p>自动化处理系统，支付成功后立即交付产品</p>
-                      </div>
-                    </div>
-                    <div class="advantage-item">
-                      <el-icon><Tools /></el-icon>
-                      <div>
-                        <h4>专业服务</h4>
-                        <p>7×24小时技术支持，专业团队为您提供优质服务</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </el-tab-pane>
-            
-            <el-tab-pane label="用户评价" name="reviews">
-              <div class="product-reviews">
-                <div class="reviews-summary">
-                  <div class="rating-overview">
-                    <div class="rating-score">
-                      <span class="score">{{ currentDetailProduct.rating || 4.8 }}</span>
-                      <el-rate 
-                        v-model="currentDetailProduct.rating" 
-                        disabled 
-                        size="large"
-                      />
-                    </div>
-                    <div class="rating-stats">
-                      <div class="stat-item">
-                        <span class="stars">5星</span>
-                        <div class="progress-bar"><div class="progress" style="width: 75%"></div></div>
-                        <span class="count">96</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stars">4星</span>
-                        <div class="progress-bar"><div class="progress" style="width: 20%"></div></div>
-                        <span class="count">26</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stars">3星</span>
-                        <div class="progress-bar"><div class="progress" style="width: 3%"></div></div>
-                        <span class="count">4</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stars">2星</span>
-                        <div class="progress-bar"><div class="progress" style="width: 1%"></div></div>
-                        <span class="count">1</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stars">1星</span>
-                        <div class="progress-bar"><div class="progress" style="width: 1%"></div></div>
-                        <span class="count">1</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="reviews-list">
-                  <div v-if="!currentDetailProduct?.reviews || currentDetailProduct.reviews.length === 0" class="no-reviews">
-                    <p>暂无评价，来写第一条评价吧！</p>
-                    <el-button type="primary" @click="openReviewDialog(currentDetailProduct)">
-                      <el-icon><Edit /></el-icon>
-                      写评价
-                    </el-button>
-                  </div>
-                  <div class="review-item" v-for="review in currentDetailProduct?.reviews || []" :key="review.id">
-                    <div class="reviewer-info">
-                      <el-avatar :size="40" :src="review.avatar">{{ review.userName?.charAt(0) || 'U' }}</el-avatar>
-                      <div class="reviewer-details">
-                        <h4>{{ review.userName || '匿名用户' }}</h4>
-                        <div class="review-meta">
-                          <el-rate :model-value="review.rating" disabled size="small" />
-                          <span class="review-time">{{ formatTime(review.date) }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="review-content">
-                      <p>{{ review.content }}</p>
-                      <div v-if="review.images && review.images.length > 0" class="review-images">
-                        <img v-for="(image, index) in review.images" :key="index" :src="image" :alt="`评价图片${index + 1}`" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </el-tab-pane>
-            
-            <el-tab-pane label="购买须知" name="notice">
-              <div class="purchase-notice">
-                <div class="notice-section">
-                  <h3>🔒 安全保障</h3>
-                  <ul>
-                    <li>所有交易均采用SSL加密传输，确保支付安全</li>
-                    <li>产品均通过企业级安全检测，品质有保障</li>
-                    <li>支持7天无理由退换，消费者权益得到充分保护</li>
-                  </ul>
-                </div>
-                
-                <div class="notice-section">
-                  <h3>📦 交付说明</h3>
-                  <ul>
-                    <li>支付成功后系统将自动发送产品信息到您的邮箱</li>
-                    <li>卡密信息也会在用户中心的订单详情中显示</li>
-                    <li>请妥善保管卡密信息，避免泄露给他人</li>
-                  </ul>
-                </div>
-                
-                <div class="notice-section">
-                  <h3>💝 售后服务</h3>
-                  <ul>
-                    <li>7×24小时在线客服支持，随时为您解答疑问</li>
-                    <li>专业技术团队提供使用指导和技术支持</li>
-                    <li>企业客户享受专属客户经理一对一服务</li>
-                  </ul>
-                </div>
-              </div>
-            </el-tab-pane>
-          </el-tabs>
-        </div>
-      </div>
-      
-      <template #footer>
-        <div class="detail-footer-actions">
-          <div class="quantity-section">
-            <span class="quantity-label">购买数量:</span>
-            <el-input-number
-              v-model="detailQuantity"
-              :min="1"
-              :max="Math.min(currentDetailProduct?.stock || 99, 99)"
-              :disabled="!currentDetailProduct?.stock"
-              size="large"
-            />
+          
+          <div class="detail-stock">
+            <span class="stock-label">库存</span>
+            <span class="stock-value">{{ currentDetailProduct.stock }} 件</span>
           </div>
-          <div class="action-buttons">
-            <el-button size="large" @click="closeProductDetail">
-              取消
-            </el-button>
-            <el-button 
-              type="primary" 
-              size="large"
-              @click="addToCartFromDetail"
-              :disabled="!currentDetailProduct?.stock"
-            >
-              <el-icon><ShoppingCart /></el-icon>
-              加入购物车
-            </el-button>
-            <el-button 
-              type="success" 
-              size="large"
-              @click="buyNowFromDetail"
-              :disabled="!currentDetailProduct?.stock"
-            >
+          
+          <div class="detail-quantity">
+            <span class="qty-label">数量</span>
+            <el-input-number v-model="detailQuantity" :min="1" :max="currentDetailProduct.stock" />
+          </div>
+          
+          <div class="detail-actions">
+            <el-button type="primary" size="large" :disabled="!currentDetailProduct.stock" @click="buyNowFromDetail">
               立即购买
             </el-button>
+            <el-button size="large" :disabled="!currentDetailProduct.stock" @click="addToCartFromDetail">
+              加入购物车
+            </el-button>
           </div>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 评价弹窗 -->
-    <el-dialog 
-      v-model="showReviewDialog" 
-      :title="`评价商品 - ${currentReviewProduct?.name || ''}`"
-      width="600px"
-      class="review-dialog"
-      @close="closeReviewDialog"
-    >
-      <div v-if="currentReviewProduct" class="review-form">
-        <!-- 产品信息 -->
-        <div class="review-product-info">
-          <img 
-            :src="currentReviewProduct.image || '/ceshi/default-product.jpg'" 
-            :alt="currentReviewProduct.name" 
-            class="review-product-image"
-          />
-          <div class="review-product-details">
-            <h3>{{ currentReviewProduct.name }}</h3>
-            <p class="product-price">¥{{ currentReviewProduct.price }}</p>
-          </div>
-        </div>
-
-        <!-- 评分 -->
-        <div class="review-rating">
-          <label>评分：</label>
-          <el-rate 
-            v-model="newReview.rating" 
-            :max="5"
-            show-text
-            :texts="['极差', '较差', '一般', '推荐', '力荐']"
-            size="large"
-            style="--el-rate-icon-size: 20px;"
-          />
-        </div>
-
-        <!-- 评价内容 -->
-        <div class="review-content">
-          <label>评价内容：</label>
-          <el-input
-            v-model="newReview.content"
-            type="textarea"
-            :rows="4"
-            placeholder="请详细描述您对这款产品的使用体验..."
-            maxlength="500"
-            show-word-limit
-          />
-        </div>
-
-        <!-- 用户信息显示 -->
-        <div class="reviewer-info">
-          <div class="reviewer-avatar">
-            <el-icon><UserFilled /></el-icon>
-          </div>
-          <span class="reviewer-name">{{ userStore.user?.name || '匿名用户' }}</span>
         </div>
       </div>
-
-      <template #footer>
-        <el-button @click="closeReviewDialog" size="large">
-          取消
-        </el-button>
-        <el-button 
-          type="primary" 
-          @click="submitReview" 
-          size="large"
-          :disabled="!newReview.content.trim()"
-        >
-          <el-icon><Plus /></el-icon>
-          提交评价
-        </el-button>
-      </template>
     </el-dialog>
 
-    <!-- 购买确认对话框 -->
-    <el-dialog v-model="showPurchaseDialog" title="确认购买" width="500px">
-      <div v-if="currentProduct" class="purchase-confirmation">
-        <div class="product-summary">
-          <img :src="currentProduct.image || '/ceshi/default-product.jpg'" :alt="currentProduct.name" class="summary-image" />
-          <div class="summary-info">
+    <!-- 购买确认弹窗 -->
+    <el-dialog v-model="showPurchaseDialog" title="确认购买" width="500px" class="purchase-dialog">
+      <div v-if="currentProduct" class="purchase-content">
+        <div class="purchase-product">
+          <img :src="currentProduct.image || DEFAULT_PRODUCT_IMAGE" :alt="currentProduct.name" />
+          <div class="product-info">
             <h4>{{ currentProduct.name }}</h4>
-            
-            <!-- 卡密类型选择 -->
-            <div class="card-type-selection" v-if="availableCardTypes.length > 0">
-              <h4>选择卡密类型：</h4>
-              <div class="card-type-grid">
-                <div 
-                  v-for="cardType in availableCardTypes" 
-                  :key="cardType.id"
-                  class="card-type-option"
-                  :class="{ active: selectedCardType?.id === cardType.id }"
-                  @click="selectCardType(cardType)"
-                >
-                  <div class="card-type-header">
-                    <span class="card-type-name">{{ cardType.name }}</span>
-                    <div class="card-type-tags">
-                      <el-tag :type="getCardTypeTagType(cardType.duration)" size="small">
-                        {{ cardType.duration }}
-                      </el-tag>
-                      <el-tag type="success" size="small">
-                        ¥{{ cardType.price?.toFixed(2) || '0.00' }}
-                      </el-tag>
-                    </div>
-                  </div>
-                  <p class="card-type-desc">{{ cardType.description }}</p>
-                  <div class="card-type-stock">
-                    <span class="stock-label">库存: {{ getCardTypeStock(cardType.id) }}张</span>
+            <p>单价：¥{{ calculateFinalPrice(currentProduct.price, 1, true).actualPrice.toFixed(2) }}</p>
+          </div>
+        </div>
+
+        <!-- 卡密类型选择 -->
+        <div v-if="availableCardTypes.length > 0" class="card-type-section">
+          <h5>选择类型</h5>
+          <div class="card-type-grid">
+            <div
+              v-for="cardType in availableCardTypes"
+              :key="cardType.id"
+              class="card-type-item"
+              :class="{ active: selectedCardType?.id === cardType.id }"
+              @click="selectCardType(cardType)"
+            >
+              <span class="type-name">{{ cardType.name }}</span>
+              <span class="type-price">¥{{ cardType.price?.toFixed(2) || '0.00' }}</span>
+              <span class="type-stock">库存: {{ getCardTypeStock(cardType.id) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 数量选择 -->
+        <div class="quantity-section">
+          <h5>购买数量</h5>
+          <el-input-number v-model="purchaseQuantity" :min="1" :max="getMaxQuantity()" />
+          <span class="max-hint">最多 {{ getMaxQuantity() }} 张</span>
+        </div>
+
+        <!-- 优惠券 -->
+        <div class="coupon-section">
+          <h5>优惠券</h5>
+          <div v-if="selectedPurchaseCoupon" class="selected-coupon">
+            <span>{{ selectedPurchaseCoupon.name }}</span>
+            <span class="coupon-discount">-¥{{ purchaseCouponDiscount.toFixed(2) }}</span>
+            <el-button type="text" size="small" @click="removePurchaseCoupon">移除</el-button>
+          </div>
+          <div v-else>
+            <!-- 可用优惠券列表 -->
+            <div v-if="availableCoupons.length > 0" class="available-coupons">
+              <div 
+                v-for="coupon in availableCoupons" 
+                :key="coupon.id" 
+                class="coupon-item"
+                @click="selectCoupon(coupon)"
+              >
+                <div class="coupon-value">
+                  <span v-if="coupon.type === 'percentage'">{{ coupon.value }}%</span>
+                  <span v-else>¥{{ coupon.value }}</span>
+                </div>
+                <div class="coupon-info">
+                  <div class="coupon-name">{{ coupon.name }}</div>
+                  <div class="coupon-condition">
+                    <span v-if="coupon.minAmount">满¥{{ coupon.minAmount }}可用</span>
+                    <span v-else>无门槛</span>
                   </div>
                 </div>
               </div>
-              
-              <!-- 无卡密类型提示 -->
-              <div v-if="selectedCardType && getCardTypeStock(selectedCardType.id) === 0" class="no-stock-warning">
-                <el-alert
-                  title="该类型卡密暂时缺货"
-                  type="warning"
-                  :closable="false"
-                  show-icon
-                />
-              </div>
             </div>
-            
-            <!-- 数量选择 -->
-            <div class="quantity-selection">
-              <label>购买数量：</label>
-              <el-input-number 
-                v-model="purchaseQuantity" 
-                :min="1" 
-                :max="getMaxQuantity()"
-                size="default"
-              />
-              <span class="quantity-hint">
-                (最多可购买 {{ getMaxQuantity() }} 张)
-              </span>
-            </div>
-            
-            <div v-if="userVipInfo.level > 0" class="vip-summary-pricing">
-              <p class="summary-original">原价：¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).actualPrice.toFixed(2) }} × {{ purchaseQuantity }}</p>
-              <p class="summary-discount">
-                {{ userVipInfo.name }}优惠：{{ (10 - userVipInfo.discount * 10).toFixed(1) }}折
-                <el-tag 
-                  size="small" 
-                  :type="userVipInfo.level === 1 ? 'warning' : ''"
-                  :color="userVipInfo.level === 2 ? '#9333ea' : ''"
-                  style="margin-left: 8px;"
-                >
-                  -¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).totalSavings.toFixed(2) }}
-                </el-tag>
-              </p>
-              <p v-if="purchaseCouponDiscount > 0" class="summary-coupon-discount">
-                优惠券折扣：
-                <el-tag size="small" type="success" style="margin-left: 8px;">
-                  -¥{{ purchaseCouponDiscount.toFixed(2) }}
-                </el-tag>
-              </p>
-              <p class="summary-total vip-total">实付：¥{{ getPurchaseFinalAmount().toFixed(2) }}</p>
-            </div>
-            <div v-else>
-              <p class="summary-price">单价：¥{{ calculateFinalPrice(currentProduct.price, 1, true).actualPrice.toFixed(2) }}</p>
-              <p class="summary-quantity">数量：{{ purchaseQuantity }} 张</p>
-              <p class="summary-subtotal">小计：¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).finalTotal.toFixed(2) }}</p>
-              <p v-if="purchaseCouponDiscount > 0" class="summary-coupon-discount">
-                优惠券折扣：
-                <el-tag size="small" type="success" style="margin-left: 8px;">
-                  -¥{{ purchaseCouponDiscount.toFixed(2) }}
-                </el-tag>
-              </p>
-              <p class="summary-total">总计：¥{{ getPurchaseFinalAmount().toFixed(2) }}</p>
-              <div class="vip-promotion">
-                <router-link to="/vip" style="color: #409eff; font-size: 12px;">
-                  升级VIP/SVIP享受购买优惠 →
-                </router-link>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 优惠券选择区域 -->
-        <div class="coupon-selection">
-          <h4>优惠券</h4>
-          
-          <!-- 已选择的优惠券 -->
-          <div v-if="selectedPurchaseCoupon" class="selected-coupon-card">
-            <div class="coupon-info">
-              <div class="coupon-name">{{ selectedPurchaseCoupon.name }}</div>
-              <div class="coupon-code">{{ selectedPurchaseCoupon.code }}</div>
-              <div class="coupon-desc">{{ getCouponDescription(selectedPurchaseCoupon) }}</div>
-            </div>
-            <div class="coupon-discount">
-              -¥{{ purchaseCouponDiscount.toFixed(2) }}
-            </div>
-            <el-button 
-              type="text" 
-              size="small" 
-              @click="removePurchaseCoupon"
-              class="remove-coupon-btn"
-            >
-              <el-icon><Close /></el-icon>
-            </el-button>
-          </div>
-          
-          <!-- 优惠券输入 -->
-          <div v-else class="coupon-input-section">
-            <div class="coupon-input-group">
-              <el-input
-                v-model="purchaseCouponCode"
-                placeholder="请输入优惠券代码"
-                size="default"
-                :disabled="purchaseCouponValidationLoading"
-                @keyup.enter="validatePurchaseCouponCode"
-              >
+            <div v-else class="no-coupons">暂无可用优惠券</div>
+            <!-- 手动输入优惠券代码 -->
+            <div class="coupon-input">
+              <el-input v-model="purchaseCouponCode" placeholder="或输入优惠券代码" size="default">
                 <template #append>
-                  <el-button 
-                    type="primary" 
-                    :loading="purchaseCouponValidationLoading"
-                    @click="validatePurchaseCouponCode"
-                  >
-                    验证
-                  </el-button>
+                  <el-button @click="validatePurchaseCouponCode" :loading="purchaseCouponValidationLoading">验证</el-button>
                 </template>
               </el-input>
             </div>
-            
-            <!-- 验证消息 -->
-            <div v-if="purchaseCouponValidationMessage" class="coupon-message" :class="{
-              'success': selectedPurchaseCoupon,
-              'error': !selectedPurchaseCoupon && purchaseCouponValidationMessage
-            }">
-              {{ purchaseCouponValidationMessage }}
-            </div>
-            
-            <!-- 可用优惠券列表 -->
-            <div v-if="availablePurchaseCoupons.length > 0" class="available-coupons">
-              <div class="coupons-title">可用优惠券：</div>
-              <div class="coupons-list">
-                <div 
-                  v-for="coupon in availablePurchaseCoupons.slice(0, 3)" 
-                  :key="coupon.id"
-                  class="coupon-card-modern"
-                  :class="{ 'user-specific': coupon.userId || coupon.userIds?.length }"
-                  @click="selectAvailablePurchaseCoupon(coupon)"
-                >
-                  <div class="coupon-left">
-                    <div class="coupon-icon">
-                      <el-icon><Ticket /></el-icon>
-                    </div>
-                    <div class="coupon-content">
-                      <div class="coupon-name-modern">{{ coupon.name }}</div>
-                      <div class="coupon-desc-modern">{{ getCouponDescription(coupon) }}</div>
-                    </div>
-                  </div>
-                  <div class="coupon-right">
-                    <div class="coupon-discount-badge" :class="getCouponTypeClass(coupon.type)">
-                      {{ getCouponDiscountText(coupon) }}
-                    </div>
-                    <div class="coupon-code-modern">{{ coupon.code }}</div>
-                    <div class="coupon-action-modern">
-                      <el-button type="primary" size="small" circle>
-                        <el-icon><ArrowRight /></el-icon>
-                      </el-button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
-        <div class="payment-method-selection">
-          <h4>选择支付方式：</h4>
+        <!-- 支付方式 -->
+        <div class="payment-section">
+          <h5>支付方式</h5>
           <el-radio-group v-model="selectedPaymentMethod">
-            <el-radio v-if="availablePaymentMethods.alipay" label="alipay">
-              <el-icon><Money /></el-icon>
-              支付宝
-            </el-radio>
-            <el-radio v-if="availablePaymentMethods.wechat" label="wechat">
-              <el-icon><Money /></el-icon>
-              微信支付
-            </el-radio>
-            <el-radio label="balance">
-              <el-icon><Wallet /></el-icon>
-              账户余额 (¥{{ userStore.user?.balance?.toFixed(2) || '0.00' }})
+            <el-radio value="balance">
+              余额支付 (¥{{ (userStore.user?.balance || 0).toFixed(2) }})
             </el-radio>
           </el-radio-group>
-          
-          <!-- 余额不足提示 -->
-          <div v-if="selectedPaymentMethod === 'balance' && (userStore.user?.balance || 0) < getPurchaseFinalAmount()" class="insufficient-balance">
-            <el-alert
-              title="余额不足"
-              type="warning"
-              :closable="false"
-            >
-              <div>
-                <p>需要支付：¥{{ getPurchaseFinalAmount().toFixed(2) }}</p>
-                <p>当前余额：¥{{ (userStore.user?.balance || 0).toFixed(2) }}</p>
-                <p>请先充值或选择其他支付方式</p>
-              </div>
-            </el-alert>
+        </div>
+
+        <!-- 价格汇总 -->
+        <div class="price-summary">
+          <div class="summary-row">
+            <span>商品金额</span>
+            <span>¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).originalTotal.toFixed(2) }}</span>
+          </div>
+          <div v-if="userVipInfo.level > 0" class="summary-row discount">
+            <span>{{ userVipInfo.name }}优惠</span>
+            <span>-¥{{ calculateFinalPrice(currentProduct.price, purchaseQuantity, true).totalSavings.toFixed(2) }}</span>
+          </div>
+          <div v-if="purchaseCouponDiscount > 0" class="summary-row discount">
+            <span>优惠券</span>
+            <span>-¥{{ purchaseCouponDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row total">
+            <span>实付金额</span>
+            <span class="total-price">¥{{ getPurchaseFinalAmount().toFixed(2) }}</span>
           </div>
         </div>
       </div>
       
       <template #footer>
         <el-button @click="showPurchaseDialog = false">取消</el-button>
-        <el-button 
-          type="primary" 
-          @click="confirmPurchase" 
-          :loading="purchasing"
-          :disabled="!canProceedPurchase"
-        >
-          确认购买
+        <el-button type="primary" :loading="purchasing" :disabled="!canProceedPurchase" @click="confirmPurchase">
+          确认支付
         </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量购买弹窗 -->
+    <el-dialog v-model="showBatchPurchaseDialog" title="批量购买确认" width="600px">
+      <div class="batch-content">
+        <div class="batch-items">
+          <div v-for="item in cartItems" :key="item.id" class="batch-item">
+            <img :src="item.image || DEFAULT_PRODUCT_IMAGE" :alt="item.name" />
+            <div class="item-info">
+              <h4>{{ item.name }}</h4>
+              <span>×{{ item.quantity }}</span>
+            </div>
+            <span class="item-price">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+          </div>
+        </div>
+        
+        <div class="batch-summary">
+          <div class="summary-row">
+            <span>商品总价</span>
+            <span>¥{{ cartTotal.toFixed(2) }}</span>
+          </div>
+          <div v-if="couponDiscount > 0" class="summary-row discount">
+            <span>优惠券</span>
+            <span>-¥{{ couponDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row total">
+            <span>应付金额</span>
+            <span class="total-price">¥{{ finalPaymentAmount.toFixed(2) }}</span>
+          </div>
+        </div>
+        
+        <div class="payment-method">
+          <h5>支付方式</h5>
+          <el-radio-group v-model="selectedPaymentMethod">
+            <el-radio value="balance">余额支付 (¥{{ (userStore.user?.balance || 0).toFixed(2) }})</el-radio>
+          </el-radio-group>
+        </div>
+      </div>
+      
+      <template #footer>
+        <el-button @click="showBatchPurchaseDialog = false">取消</el-button>
+        <el-button type="primary" :loading="batchPurchaseLoading" @click="confirmBatchPurchase">确认购买</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 评价弹窗 -->
+    <el-dialog v-model="showReviewDialog" :title="`评价 - ${currentReviewProduct?.name}`" width="500px">
+      <div v-if="currentReviewProduct" class="review-form">
+        <div class="review-rating">
+          <span>评分</span>
+          <el-rate v-model="newReview.rating" :texts="['极差', '较差', '一般', '推荐', '力荐']" show-text />
+        </div>
+        <el-input v-model="newReview.content" type="textarea" :rows="4" placeholder="分享您的使用体验..." maxlength="500" show-word-limit />
+      </div>
+      <template #footer>
+        <el-button @click="showReviewDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitReview" :disabled="!newReview.content.trim()">提交评价</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useVipStore } from '@/stores/vip'
-import { 
-  Search, ShoppingCart, Close, Delete, Money, Wallet, ArrowRight, View,
-  Star, Check, Lock, Setting, Tools, Edit, Plus, UserFilled, Ticket
-} from '@element-plus/icons-vue'
+import { Search, ShoppingCart, Delete, View, Box } from '@element-plus/icons-vue'
+
+// 默认商品图片 - 使用 Vite 的 BASE_URL
+const DEFAULT_PRODUCT_IMAGE = `${import.meta.env.BASE_URL}default-product.jpg`
 
 const userStore = useUserStore()
 const vipStore = useVipStore()
@@ -1321,146 +459,57 @@ const sortOrder = ref('recommended')
 const currentPage = ref(1)
 const pageSize = ref(12)
 
-// 购物车状态
+// 动画相关
+const productsSection = ref(null)
+const productsVisible = ref(false)
+let observer = null
+
+const setupObserver = () => {
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && entry.target === productsSection.value) {
+        productsVisible.value = true
+      }
+    })
+  }, { threshold: 0.1 })
+  
+  if (productsSection.value) observer.observe(productsSection.value)
+}
+
+// 购物车
 const showCartSidebar = ref(false)
 const cartItems = ref([])
 const showBatchPurchaseDialog = ref(false)
 const batchPurchaseLoading = ref(false)
 
-// 优惠券相关状态
-const availableCoupons = ref([])
+// 优惠券
 const selectedCoupon = ref(null)
 const couponCode = ref('')
-const couponValidationLoading = ref(false)
-const couponValidationMessage = ref('')
-
-// 立即购买优惠券相关状态
-const availablePurchaseCoupons = ref([])
 const selectedPurchaseCoupon = ref(null)
 const purchaseCouponCode = ref('')
 const purchaseCouponValidationLoading = ref(false)
-const purchaseCouponValidationMessage = ref('')
 
-// 商品详情弹窗
+// 商品详情
 const showProductDetailDialog = ref(false)
 const currentDetailProduct = ref(null)
-const currentDetailImage = ref('')
-const activeDetailTab = ref('details')
 const detailQuantity = ref(1)
 
-// 评价功能
+// 评价
 const showReviewDialog = ref(false)
 const currentReviewProduct = ref(null)
-const newReview = reactive({
-  rating: 5,
-  content: '',
-  images: []
-})
+const newReview = reactive({ rating: 5, content: '' })
 
-// 购买对话框
+// 购买
 const showPurchaseDialog = ref(false)
 const currentProduct = ref(null)
 const purchaseQuantity = ref(1)
 const selectedPaymentMethod = ref('balance')
 const purchasing = ref(false)
-
-// 卡密类型相关
 const selectedCardType = ref(null)
-const availableCardTypes = computed(() => {
-  const types = currentProduct.value?.cardTypes || []
-  console.log('可用卡密类型:', types)
-  
-  // 从卡密记录中获取真实价格
-  const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-  
-  const typesWithRealPrices = types.map(type => {
-    // 查找该类型的卡密记录
-    const typeCards = allCards.filter(card => 
-      card.status === 'unused' && 
-      !card.purchasedBy && 
-      String(card.zoneId) === String(currentProduct.value?.zoneId) && 
-      String(card.productId) === String(currentProduct.value?.id) &&
-      String(card.cardTypeId) === String(type.id)
-    )
-    
-    if (typeCards.length > 0) {
-      // 从第一张卡密获取真实面值
-      const firstCard = typeCards[0]
-      let realPrice = 0
-      
-      if (firstCard.cardTypePrice) {
-        // 如果卡密有 cardTypePrice 字段，使用它
-        realPrice = firstCard.cardTypePrice
-      } else if (firstCard.value) {
-        // 从 value 字段解析价格 (格式如: "¥15" 或 "15")
-        const valueStr = String(firstCard.value).replace('¥', '').replace('元', '')
-        realPrice = parseFloat(valueStr) || 0
-      }
-      
-      // 更新类型的价格
-      type.price = realPrice
-      console.log(`从卡密记录获取价格: ${type.name} -> ¥${realPrice} (来源: ${typeCards.length}张卡密)`)
-    } else {
-      console.warn(`卡密类型 ${type.name} 没有找到可用卡密，无法获取价格`)
-      type.price = 0
-    }
-    
-    return type
-  })
-  
-  return typesWithRealPrices
-})
 
-
-// 支付方式可用性
-const availablePaymentMethods = ref({
-  alipay: false,
-  wechat: false,
-  bankTransfer: false,
-  paypal: false
-})
-
-// 专区数据
+// 数据
 const zones = ref([])
-
-// 商品数据
 const products = ref([])
-
-// 模拟评价数据
-const mockReviews = ref([
-  {
-    id: 1,
-    username: '企业用户A***',
-    rating: 5,
-    time: '2024-01-15',
-    content: '非常专业的企业级解决方案，交付及时，服务优质，强烈推荐给其他企业用户。',
-    tags: ['服务专业', '交付及时', '质量优秀']
-  },
-  {
-    id: 2,
-    username: '商务客户B***',
-    rating: 5,
-    time: '2024-01-10',
-    content: '产品质量很好，客服响应迅速，解决问题很及时，会继续合作。',
-    tags: ['质量可靠', '客服优秀', '响应迅速']
-  },
-  {
-    id: 3,
-    username: '技术总监C***',
-    rating: 4,
-    time: '2024-01-08',
-    content: '整体使用体验不错，技术支持很到位，有小问题但很快就解决了。',
-    tags: ['技术支持好', '使用方便']
-  },
-  {
-    id: 4,
-    username: '采购经理D***',
-    rating: 5,
-    time: '2024-01-05',
-    content: '采购流程简单，价格透明，VIP服务很贴心，为公司节省了不少成本。',
-    tags: ['流程简单', '价格透明', 'VIP服务']
-  }
-])
 
 // 用户VIP信息
 const user = computed(() => userStore.user)
@@ -1470,5488 +519,1245 @@ const userVipInfo = computed(() => {
 })
 
 // 计算属性
-const currentZoneProducts = computed(() => {
-  return products.value.filter(p => p.zoneId === activeZone.value)
-})
+const currentZoneProducts = computed(() => products.value.filter(p => p.zoneId === activeZone.value))
 
 const filteredProducts = computed(() => {
   let filtered = currentZoneProducts.value
-
-  // 搜索过滤
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(p => 
-      p.name.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query)
-    )
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
   }
-
-  // 价格过滤
   if (priceFilter.value) {
     const [min, max] = priceFilter.value.split('-').map(v => v === '+' ? Infinity : parseInt(v))
     filtered = filtered.filter(p => p.price >= min && (max === undefined || p.price <= max))
   }
-
-  // 排序
   switch (sortOrder.value) {
-    case 'price-asc':
-      filtered.sort((a, b) => a.price - b.price)
-      break
-    case 'price-desc':
-      filtered.sort((a, b) => b.price - a.price)
-      break
-    case 'newest':
-      filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
-      break
-    case 'sales':
-      filtered.sort((a, b) => (b.isHot ? 1 : 0) - (a.isHot ? 1 : 0))
-      break
-    default:
-      // 推荐排序：热销 > 新品 > 评分
-      filtered.sort((a, b) => {
-        if (a.isHot && !b.isHot) return -1
-        if (!a.isHot && b.isHot) return 1
-        if (a.isNew && !b.isNew) return -1
-        if (!a.isNew && b.isNew) return 1
-        return b.rating - a.rating
-      })
+    case 'price-asc': filtered.sort((a, b) => a.price - b.price); break
+    case 'price-desc': filtered.sort((a, b) => b.price - a.price); break
+    case 'newest': filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0)); break
+    case 'sales': filtered.sort((a, b) => (b.isHot ? 1 : 0) - (a.isHot ? 1 : 0)); break
+    default: filtered.sort((a, b) => {
+      if (a.isHot && !b.isHot) return -1
+      if (!a.isHot && b.isHot) return 1
+      return b.rating - a.rating
+    })
   }
-
   return filtered
 })
 
 const paginatedProducts = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredProducts.value.slice(start, end)
+  return filteredProducts.value.slice(start, start + pageSize.value)
 })
 
-const cartTotal = computed(() => {
-  return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0)
-})
+const cartTotal = computed(() => cartItems.value.reduce((t, i) => t + i.price * i.quantity, 0))
+const couponDiscount = computed(() => selectedCoupon.value ? Math.min(cartTotal.value * 0.1, 50) : 0)
+const finalPaymentAmount = computed(() => Math.max(0, cartTotal.value - couponDiscount.value))
 
-// 优惠券计算逻辑
-const couponDiscount = computed(() => {
-  if (!selectedCoupon.value) return 0
-  
-  const total = cartTotal.value
-  const coupon = selectedCoupon.value
-  
-  if (coupon.type === 'percentage') {
-    // 百分比折扣
-    return Math.min(total * (coupon.value / 100), coupon.maxDiscount || Infinity)
-  } else if (coupon.type === 'fixed') {
-    // 固定金额折扣
-    return Math.min(coupon.value, total)
-  } else if (coupon.type === 'threshold') {
-    // 满减优惠
-    if (total >= coupon.minAmount) {
-      return coupon.discountAmount
+const availableCardTypes = computed(() => {
+  const types = currentProduct.value?.cardTypes || []
+  const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
+  return types.map(type => {
+    const typeCards = allCards.filter(card => 
+      card.status === 'unused' && !card.purchasedBy &&
+      String(card.zoneId) === String(currentProduct.value?.zoneId) &&
+      String(card.productId) === String(currentProduct.value?.id) &&
+      String(card.cardTypeId) === String(type.id)
+    )
+    if (typeCards.length > 0 && typeCards[0].cardTypePrice) {
+      type.price = typeCards[0].cardTypePrice
     }
-  }
-  
-  return 0
+    return type
+  })
 })
 
-// 立即购买优惠券计算逻辑
 const purchaseCouponDiscount = computed(() => {
   if (!selectedPurchaseCoupon.value || !currentProduct.value) return 0
-  
   const basePrice = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
   const coupon = selectedPurchaseCoupon.value
-  
-  if (coupon.type === 'percentage') {
-    // 百分比折扣
-    return Math.min(basePrice * (coupon.value / 100), coupon.maxDiscount || Infinity)
-  } else if (coupon.type === 'fixed') {
-    // 固定金额折扣
-    return Math.min(coupon.value, basePrice)
-  } else if (coupon.type === 'threshold') {
-    // 满减优惠
-    if (basePrice >= coupon.minAmount) {
-      return coupon.discountAmount
-    }
-  }
-  
+  if (coupon.type === 'percentage') return Math.min(basePrice * (coupon.value / 100), coupon.maxDiscount || Infinity)
+  if (coupon.type === 'fixed') return Math.min(coupon.value, basePrice)
+  if (coupon.type === 'threshold' && basePrice >= coupon.minAmount) return coupon.discountAmount
   return 0
 })
 
-// 立即购买最终金额计算
-const getPurchaseFinalAmount = () => {
-  if (!currentProduct.value) return 0
+// 获取用户可用优惠券
+const availableCoupons = computed(() => {
+  if (!userStore.user?.id) return []
+  const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+  const userId = String(userStore.user.id)
+  const now = new Date()
   
-  const baseAmount = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
-  return Math.max(0, baseAmount - purchaseCouponDiscount.value)
-}
-
-// 最终支付金额
-const finalPaymentAmount = computed(() => {
-  return Math.max(0, cartTotal.value - couponDiscount.value)
+  // 用于去重的 Map，key 是优惠券的原始 ID（去掉 _claimed_ 等后缀）
+  const couponMap = new Map()
+  
+  allCoupons.forEach(coupon => {
+    // 必须是激活状态
+    if (!coupon.isActive) return
+    // 检查有效期
+    if (new Date(coupon.validTo) < now) return
+    if (new Date(coupon.validFrom) > now) return
+    // 检查使用次数
+    if (coupon.usedCount >= coupon.usageLimit) return
+    // 检查是否属于当前用户（专属优惠券或已领取的）
+    const couponUserId = coupon.userId ? String(coupon.userId) : null
+    if (couponUserId !== userId) {
+      // 检查 userIds 数组
+      if (!coupon.userIds || !coupon.userIds.map(String).includes(userId)) {
+        return
+      }
+    }
+    
+    // 提取原始优惠券 ID（去掉 _claimed_xxx 或 _user_xxx 后缀）
+    const originalId = coupon.id.toString().split('_claimed_')[0].split('_user_')[0]
+    
+    // 优先保留用户专属的副本（带 _claimed_ 或 _user_ 的）
+    const existing = couponMap.get(originalId)
+    if (!existing || coupon.id.toString().includes('_claimed_') || coupon.id.toString().includes('_user_')) {
+      couponMap.set(originalId, coupon)
+    }
+  })
+  
+  return Array.from(couponMap.values())
 })
+
+// 选择优惠券
+const selectCoupon = (coupon) => {
+  selectedPurchaseCoupon.value = coupon
+  ElMessage.success(`已选择优惠券: ${coupon.name}`)
+}
 
 const canProceedPurchase = computed(() => {
   if (!currentProduct.value) return false
-  
-  // 如果商品有卡密类型，必须选择卡密类型
-  if (availableCardTypes.value.length > 0 && !selectedCardType.value) {
-    return false
-  }
-  
-  // 如果选择了卡密类型，检查库存
-  if (selectedCardType.value && getCardTypeStock(selectedCardType.value.id) < purchaseQuantity.value) {
-    return false
-  }
-  
+  if (availableCardTypes.value.length > 0 && !selectedCardType.value) return false
+  if (selectedCardType.value && getCardTypeStock(selectedCardType.value.id) < purchaseQuantity.value) return false
   if (selectedPaymentMethod.value === 'balance') {
-    const totalCost = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
-    return (userStore.user?.balance || 0) >= totalCost
+    return (userStore.user?.balance || 0) >= getPurchaseFinalAmount()
   }
   return true
 })
 
-// VIP价格计算函数 - 用于特定商品的价格计算
+// 方法
+const switchZone = (zoneId) => { activeZone.value = zoneId; currentPage.value = 1 }
+const handleSizeChange = (val) => { pageSize.value = val; currentPage.value = 1 }
+const handleCurrentChange = (val) => { currentPage.value = val }
+const handleIconError = (zone) => { zone.customIcon = ''; zone.icon = zone.icon || '🎯' }
+const handleImageError = (e) => { e.target.src = DEFAULT_PRODUCT_IMAGE }
+
 const calculateProductPrice = (product, quantity = 1) => {
   let actualPrice = product.price
-  console.log('=== 计算商品价格 ===', product.name, '基础价格:', actualPrice)
-  
-  // 如果商品有卡密类型，使用第一个有库存的卡密类型价格
-  if (product.cardTypes && product.cardTypes.length > 0) {
-    console.log('商品有', product.cardTypes.length, '个卡密类型')
+  if (product.cardTypes?.length > 0) {
     const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-    
-    // 找到第一个有库存的卡密类型
-    const availableCardType = product.cardTypes.find(cardType => {
-      const availableCards = allCards.filter(card => 
-        card.status === 'unused' && 
-        !card.purchasedBy && 
-        String(card.zoneId) === String(product.zoneId) && 
-        String(card.productId) === String(product.id) &&
-        String(card.cardTypeId) === String(cardType.id)
-      )
-      return availableCards.length > 0
+    const availableType = product.cardTypes.find(ct => {
+      const cards = allCards.filter(c => c.status === 'unused' && !c.purchasedBy &&
+        String(c.zoneId) === String(product.zoneId) && String(c.productId) === String(product.id) && String(c.cardTypeId) === String(ct.id))
+      return cards.length > 0
     })
-    
-    if (availableCardType) {
-      // 从卡密记录中获取真实价格
-      const availableCards = allCards.filter(card => 
-        card.status === 'unused' && 
-        !card.purchasedBy && 
-        String(card.zoneId) === String(product.zoneId) && 
-        String(card.productId) === String(product.id) &&
-        String(card.cardTypeId) === String(availableCardType.id)
-      )
-      
-      console.log('找到可用卡密', availableCards.length, '张，第一张价格:', availableCards[0]?.cardTypePrice)
-      if (availableCards.length > 0) {
-        // 优先使用 cardTypePrice 字段
-        if (availableCards[0].cardTypePrice) {
-          actualPrice = availableCards[0].cardTypePrice
-          console.log('商品', product.name, '使用卡密记录价格(cardTypePrice):', actualPrice)
-        } else if (availableCards[0].value) {
-          // 从 value 字段解析价格
-          const valueStr = String(availableCards[0].value).replace('¥', '').replace('元', '')
-          actualPrice = parseFloat(valueStr) || actualPrice
-          console.log('商品', product.name, '使用卡密记录价格(value):', actualPrice)
-        }
-      } else if (availableCardType.price) {
-        actualPrice = availableCardType.price
-        console.log('商品', product.name, '使用卡密类型配置价格:', actualPrice)
-      }
-    } else {
-      console.log('没有找到有库存的卡密类型，使用基础价格:', actualPrice)
+    if (availableType) {
+      const cards = allCards.filter(c => c.status === 'unused' && !c.purchasedBy &&
+        String(c.zoneId) === String(product.zoneId) && String(c.productId) === String(product.id) && String(c.cardTypeId) === String(availableType.id))
+      if (cards[0]?.cardTypePrice) actualPrice = cards[0].cardTypePrice
     }
   }
-  
-  const originalTotal = actualPrice * quantity
-  const userLevel = user.value?.level || '普通'
-  const discountInfo = vipStore.calculateDiscountPrice(actualPrice, userLevel)
-  const finalTotal = discountInfo.finalPrice * quantity
-  const totalSavings = discountInfo.savings * quantity
-  
+  const discountInfo = vipStore.calculateDiscountPrice(actualPrice, user.value?.level || '普通')
   return {
-    originalTotal: parseFloat(originalTotal.toFixed(2)),
-    finalTotal: parseFloat(finalTotal.toFixed(2)),
-    totalSavings: parseFloat(totalSavings.toFixed(2)),
+    originalTotal: actualPrice * quantity,
+    finalTotal: discountInfo.finalPrice * quantity,
+    totalSavings: discountInfo.savings * quantity,
     hasDiscount: discountInfo.discount > 0,
-    discount: discountInfo.discount,
-    discountPercent: Math.round((1 - (1 - discountInfo.discount)) * 10),
-    actualPrice: parseFloat(actualPrice.toFixed(2))
+    actualPrice
   }
 }
 
-// VIP价格计算函数 - 用于当前选择的卡密类型
 const calculateFinalPrice = (basePrice, quantity = 1, useCardTypePrice = false) => {
   let actualPrice = basePrice
-  
-  // 如果选择了卡密类型且启用类型价格，使用类型价格
   if (useCardTypePrice && selectedCardType.value) {
-    console.log('计算最终价格 - 选择的卡密类型:', selectedCardType.value.name, '价格:', selectedCardType.value.price)
-    // 优先从卡密记录中获取真实价格
     const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-    const availableCards = allCards.filter(card => 
-      card.status === 'unused' && 
-      !card.purchasedBy && 
-      card.zoneId === currentProduct.value?.zoneId && 
-      card.productId === currentProduct.value?.id &&
-      card.cardTypeId === selectedCardType.value.id
-    )
-    
-    if (availableCards.length > 0) {
-      // 优先使用 cardTypePrice 字段
-      if (availableCards[0].cardTypePrice) {
-        actualPrice = availableCards[0].cardTypePrice
-        console.log('使用卡密记录中的价格(cardTypePrice):', actualPrice, '原商品价格:', basePrice)
-      } else if (availableCards[0].value) {
-        // 从 value 字段解析价格
-        const valueStr = String(availableCards[0].value).replace('¥', '').replace('元', '')
-        actualPrice = parseFloat(valueStr) || basePrice
-        console.log('使用卡密记录中的价格(value):', actualPrice, '原商品价格:', basePrice)
-      }
-    } else if (selectedCardType.value.price) {
-      actualPrice = selectedCardType.value.price
-      console.log('使用卡密类型配置价格:', actualPrice, '原商品价格:', basePrice)
-    }
+    const cards = allCards.filter(c => c.status === 'unused' && !c.purchasedBy &&
+      c.zoneId === currentProduct.value?.zoneId && c.productId === currentProduct.value?.id && c.cardTypeId === selectedCardType.value.id)
+    if (cards[0]?.cardTypePrice) actualPrice = cards[0].cardTypePrice
+    else if (selectedCardType.value.price) actualPrice = selectedCardType.value.price
   }
-  
-  const originalTotal = actualPrice * quantity
-  const userLevel = user.value?.level || '普通'
-  const discountInfo = vipStore.calculateDiscountPrice(actualPrice, userLevel)
-  const finalTotal = discountInfo.finalPrice * quantity
-  const totalSavings = discountInfo.savings * quantity
-  
+  const discountInfo = vipStore.calculateDiscountPrice(actualPrice, user.value?.level || '普通')
   return {
-    originalTotal: parseFloat(originalTotal.toFixed(2)),
-    finalTotal: parseFloat(finalTotal.toFixed(2)),
-    totalSavings: parseFloat(totalSavings.toFixed(2)),
+    originalTotal: actualPrice * quantity,
+    finalTotal: discountInfo.finalPrice * quantity,
+    totalSavings: discountInfo.savings * quantity,
     hasDiscount: discountInfo.discount > 0,
-    discount: discountInfo.discount,
-    discountPercent: Math.round((1 - (1 - discountInfo.discount)) * 10), // 计算折扣 (如0.05 -> 9.5折)
-    actualPrice: parseFloat(actualPrice.toFixed(2)) // 实际使用的单价
+    actualPrice
   }
 }
 
-// 方法
-const switchZone = (zoneId) => {
-  activeZone.value = zoneId
-  currentPage.value = 1
+const getPurchaseFinalAmount = () => {
+  if (!currentProduct.value) return 0
+  return Math.max(0, calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal - purchaseCouponDiscount.value)
 }
 
-// 图片加载错误处理
-const handleIconError = (zone) => {
-  console.warn(`专区 ${zone.name} 的自定义图标加载失败，恢复为emoji图标`)
-  zone.customIcon = ''
-  if (!zone.icon) {
-    zone.icon = '🎯'
-  }
+const getCardTypeStock = (cardTypeId) => {
+  const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
+  return allCards.filter(c => String(c.zoneId) === String(currentProduct.value?.zoneId) &&
+    String(c.productId) === String(currentProduct.value?.id) && String(c.cardTypeId) === String(cardTypeId) &&
+    c.status === 'unused' && !c.purchasedBy).length
 }
 
-const handleSizeChange = (val) => {
-  pageSize.value = val
-  currentPage.value = 1
+const getMaxQuantity = () => {
+  if (!currentProduct.value) return 1
+  return Math.max(1, Math.min(selectedCardType.value ? getCardTypeStock(selectedCardType.value.id) : currentProduct.value.stock || 0, 99))
 }
 
-const handleCurrentChange = (val) => {
-  currentPage.value = val
+const selectCardType = (cardType) => {
+  selectedCardType.value = cardType
+  const maxQty = getMaxQuantity()
+  if (purchaseQuantity.value > maxQty) purchaseQuantity.value = Math.max(1, maxQty)
 }
 
+// 购物车操作
 const addToCart = (product) => {
-  const existingItem = cartItems.value.find(item => item.id === product.id)
-  if (existingItem) {
-    if (existingItem.quantity + product.quantity <= product.stock) {
-      existingItem.quantity += product.quantity
-      ElMessage.success('商品已添加到购物车')
-    } else {
-      ElMessage.warning('库存不足')
-    }
+  const existing = cartItems.value.find(i => i.id === product.id)
+  if (existing) {
+    if (existing.quantity + 1 <= product.stock) { existing.quantity++; ElMessage.success('已添加到购物车') }
+    else ElMessage.warning('库存不足')
   } else {
-    cartItems.value.push({
-      ...product,
-      quantity: product.quantity
-    })
-    ElMessage.success('商品已添加到购物车')
+    cartItems.value.push({ ...product, quantity: 1 })
+    ElMessage.success('已添加到购物车')
   }
-  
-  // 重置商品数量
-  product.quantity = 1
-}
-
-const updateCartItem = (item) => {
-  // 购物车商品数量更新逻辑已在 v-model 中处理
 }
 
 const removeFromCart = (productId) => {
-  const index = cartItems.value.findIndex(item => item.id === productId)
-  if (index !== -1) {
-    cartItems.value.splice(index, 1)
-    ElMessage.success('商品已从购物车移除')
-  }
-}
-
-const buyNow = (product) => {
-  currentProduct.value = product
-  purchaseQuantity.value = product.quantity || 1
-  selectedPaymentMethod.value = 'balance'
-  selectedCardType.value = null // 重置卡密类型选择
-  
-  // 重置立即购买优惠券状态
-  selectedPurchaseCoupon.value = null
-  purchaseCouponCode.value = ''
-  purchaseCouponValidationMessage.value = ''
-  
-  showPurchaseDialog.value = true
-  
-  // 如果商品有卡密类型，自动选择第一个有库存的类型
-  if (product.cardTypes && product.cardTypes.length > 0) {
-    const firstAvailableType = product.cardTypes.find(type => getCardTypeStock(type.id) > 0)
-    if (firstAvailableType) {
-      selectedCardType.value = firstAvailableType
-      // 确保购买数量不超过库存
-      const maxQty = getMaxQuantity()
-      purchaseQuantity.value = Math.min(purchaseQuantity.value, maxQty)
-    }
-  }
-}
-
-const proceedToCheckout = () => {
-  if (cartItems.value.length === 0) {
-    ElMessage.warning('购物车是空的')
-    return
-  }
-  
-  // 检查用户登录状态
-  if (!userStore.user) {
-    ElMessage.warning('请先登录')
-    router.push('/login')
-    return
-  }
-  
-  // 检查用户余额是否足够
-  const totalAmount = finalPaymentAmount.value
-  if (userStore.user.balance < totalAmount) {
-    ElMessage.warning(`余额不足，需要 ¥${totalAmount.toFixed(2)}，当前余额 ¥${userStore.user.balance.toFixed(2)}`)
-    return
-  }
-  
-  // 检查库存是否充足
-  for (const item of cartItems.value) {
-    if (item.quantity > item.stock) {
-      ElMessage.warning(`商品 "${item.name}" 库存不足，当前库存：${item.stock}`)
-      return
-    }
-  }
-  
-  // 显示批量购买确认对话框
-  showBatchPurchaseDialog.value = true
-}
-
-// 初始化优惠券数据
-const initializeCoupons = () => {
-  // 从localStorage获取优惠券数据，如果没有则创建示例数据
-  let coupons = JSON.parse(localStorage.getItem('coupons') || '[]')
-  
-  if (coupons.length === 0) {
-    // 创建示例优惠券（公开优惠券）
-    coupons = [
-      {
-        id: 'coupon_001',
-        code: 'WELCOME10',
-        name: '新用户优惠券',
-        description: '新用户专享，全场9折优惠',
-        type: 'percentage',
-        value: 10, // 10%折扣
-        maxDiscount: 50, // 最大折扣50元
-        minAmount: 0,
-        validFrom: new Date().toISOString(),
-        validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30天后过期
-        usageLimit: 100,
-        usedCount: 0,
-        isActive: true,
-        applicableProducts: [], // 空数组表示适用于所有商品
-        applicableZones: [], // 空数组表示适用于所有专区
-        isPublic: true, // 公开优惠券
-        userId: null, // 无指定用户
-        userIds: null // 无指定用户列表
-      },
-      {
-        id: 'coupon_002',
-        code: 'SAVE20',
-        name: '满减优惠券',
-        description: '满100减20，满200减50',
-        type: 'threshold',
-        minAmount: 100,
-        discountAmount: 20,
-        validFrom: new Date().toISOString(),
-        validTo: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60天后过期
-        usageLimit: 50,
-        usedCount: 0,
-        isActive: true,
-        applicableProducts: [],
-        applicableZones: [],
-        isPublic: true,
-        userId: null,
-        userIds: null
-      },
-      {
-        id: 'coupon_003',
-        code: 'FIXED15',
-        name: '固定折扣券',
-        description: '立减15元',
-        type: 'fixed',
-        value: 15,
-        minAmount: 30,
-        validFrom: new Date().toISOString(),
-        validTo: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), // 15天后过期
-        usageLimit: 200,
-        usedCount: 0,
-        isActive: true,
-        applicableProducts: [],
-        applicableZones: [],
-        isPublic: true,
-        userId: null,
-        userIds: null
-      }
-    ]
-    localStorage.setItem('coupons', JSON.stringify(coupons))
-  }
-  
-  const currentUserId = userStore.user?.id
-  const currentUserIdStr = currentUserId ? String(currentUserId) : null
-  
-  // 购物车优惠券：公开的或用户专属的
-  availableCoupons.value = coupons.filter(coupon => {
-    if (!coupon.isActive || new Date(coupon.validTo) <= new Date() || coupon.usedCount >= coupon.usageLimit) {
-      return false
-    }
-    // 公开优惠券或用户专属优惠券（统一转换为字符串比较）
-    if (coupon.isPublic) {
-      return true
-    }
-    if (currentUserIdStr) {
-      const couponUserId = coupon.userId ? String(coupon.userId) : null
-      if (couponUserId === currentUserIdStr) {
-        return true
-      }
-      if (coupon.userIds && Array.isArray(coupon.userIds)) {
-        return coupon.userIds.map(String).includes(currentUserIdStr)
-      }
-    }
-    return false
-  })
-  
-  // 立即购买优惠券：同样的逻辑
-  availablePurchaseCoupons.value = coupons.filter(coupon => {
-    if (!coupon.isActive || new Date(coupon.validTo) <= new Date() || coupon.usedCount >= coupon.usageLimit) {
-      return false
-    }
-    // 公开优惠券或用户专属优惠券（统一转换为字符串比较）
-    if (coupon.isPublic) {
-      return true
-    }
-    if (currentUserIdStr) {
-      const couponUserId = coupon.userId ? String(coupon.userId) : null
-      if (couponUserId === currentUserIdStr) {
-        return true
-      }
-      if (coupon.userIds && Array.isArray(coupon.userIds)) {
-        return coupon.userIds.map(String).includes(currentUserIdStr)
-      }
-    }
-    return false
-  })
-}
-
-// 验证优惠券代码
-const validateCouponCode = async () => {
-  if (!couponCode.value.trim()) {
-    couponValidationMessage.value = '请输入优惠券代码'
-    return false
-  }
-  
-  couponValidationLoading.value = true
-  couponValidationMessage.value = ''
-  
-  try {
-    // 从所有优惠券中查找（包括专属优惠券）
-    const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
-    const coupon = allCoupons.find(c => 
-      c.code.toUpperCase() === couponCode.value.toUpperCase()
-    )
-    
-    if (!coupon) {
-      couponValidationMessage.value = '优惠券不存在或已失效'
-      return false
-    }
-    
-    // 检查专属优惠券权限（统一转换为字符串比较）
-    const currentUserId = userStore.user?.id
-    const currentUserIdStr = currentUserId ? String(currentUserId) : null
-    if (!coupon.isPublic) {
-      const couponUserId = coupon.userId ? String(coupon.userId) : null
-      const hasPermission = couponUserId === currentUserIdStr || 
-                           (coupon.userIds && Array.isArray(coupon.userIds) && coupon.userIds.map(String).includes(currentUserIdStr))
-      if (!hasPermission) {
-        couponValidationMessage.value = '您无权使用此专属优惠券'
-        return false
-      }
-    }
-    
-    // 检查使用限制
-    if (coupon.usedCount >= coupon.usageLimit) {
-      couponValidationMessage.value = '优惠券使用次数已达上限'
-      return false
-    }
-    
-    // 检查有效期
-    const now = new Date()
-    if (now < new Date(coupon.validFrom) || now > new Date(coupon.validTo)) {
-      couponValidationMessage.value = '优惠券已过期'
-      return false
-    }
-    
-    // 检查最低消费金额
-    if (coupon.minAmount && cartTotal.value < coupon.minAmount) {
-      couponValidationMessage.value = `订单金额需满¥${coupon.minAmount}才能使用此优惠券`
-      return false
-    }
-    
-    // 检查适用商品
-    if (coupon.applicableProducts.length > 0) {
-      const hasApplicableProduct = cartItems.value.some(item => 
-        coupon.applicableProducts.includes(item.id)
-      )
-      if (!hasApplicableProduct) {
-        couponValidationMessage.value = '此优惠券不适用于购物车中的商品'
-        return false
-      }
-    }
-    
-    // 检查适用专区
-    if (coupon.applicableZones.length > 0) {
-      const hasApplicableZone = cartItems.value.some(item => 
-        coupon.applicableZones.includes(item.zoneId)
-      )
-      if (!hasApplicableZone) {
-        couponValidationMessage.value = '此优惠券不适用于购物车中的商品专区'
-        return false
-      }
-    }
-    
-    // 验证通过
-    selectedCoupon.value = coupon
-    couponValidationMessage.value = `优惠券验证成功！${coupon.description}`
-    return true
-    
-  } catch (error) {
-    console.error('优惠券验证出错:', error)
-    couponValidationMessage.value = '优惠券验证失败，请重试'
-    return false
-  } finally {
-    couponValidationLoading.value = false
-  }
-}
-
-// 移除优惠券
-const removeCoupon = () => {
-  selectedCoupon.value = null
-  couponCode.value = ''
-  couponValidationMessage.value = ''
-}
-
-// 获取优惠券折扣描述
-const getCouponDescription = (coupon) => {
-  if (coupon.type === 'percentage') {
-    return `${coupon.value}%折扣${coupon.maxDiscount ? `，最高减¥${coupon.maxDiscount}` : ''}`
-  } else if (coupon.type === 'fixed') {
-    return `立减¥${coupon.value}`
-  } else if (coupon.type === 'threshold') {
-    return `满¥${coupon.minAmount}减¥${coupon.discountAmount}`
-  }
-  return coupon.description
-}
-
-// 获取优惠券折扣文本（用于显示）
-const getCouponDiscountText = (coupon) => {
-  if (coupon.type === 'percentage') {
-    return `-${coupon.value}%`
-  } else if (coupon.type === 'fixed') {
-    return `-¥${coupon.value}`
-  } else if (coupon.type === 'threshold') {
-    return `-¥${coupon.discountAmount}`
-  }
-  return '-¥0'
-}
-
-// 获取优惠券类型样式类
-const getCouponTypeClass = (type) => {
-  const typeMap = {
-    'percentage': 'type-percentage',
-    'fixed': 'type-fixed',
-    'threshold': 'type-threshold'
-  }
-  return typeMap[type] || 'type-default'
-}
-
-// 选择可用优惠券
-const selectAvailableCoupon = (coupon) => {
-  // 检查优惠券是否可用
-  if (coupon.minAmount && cartTotal.value < coupon.minAmount) {
-    ElMessage.warning(`订单金额需满¥${coupon.minAmount}才能使用此优惠券`)
-    return
-  }
-  
-  selectedCoupon.value = coupon
-  couponCode.value = coupon.code
-  couponValidationMessage.value = `已选择优惠券：${coupon.name}`
-}
-
-// 立即购买优惠券相关方法
-const validatePurchaseCouponCode = async () => {
-  if (!purchaseCouponCode.value.trim()) {
-    purchaseCouponValidationMessage.value = '请输入优惠券代码'
-    return false
-  }
-  
-  purchaseCouponValidationLoading.value = true
-  purchaseCouponValidationMessage.value = ''
-  
-  try {
-    // 从所有优惠券中查找（包括专属优惠券）
-    const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
-    const coupon = allCoupons.find(c => 
-      c.code.toUpperCase() === purchaseCouponCode.value.toUpperCase()
-    )
-    
-    if (!coupon) {
-      purchaseCouponValidationMessage.value = '优惠券不存在或已失效'
-      return false
-    }
-    
-    // 检查专属优惠券权限（统一转换为字符串比较）
-    const currentUserId = userStore.user?.id
-    const currentUserIdStr = currentUserId ? String(currentUserId) : null
-    if (!coupon.isPublic) {
-      const couponUserId = coupon.userId ? String(coupon.userId) : null
-      const hasPermission = couponUserId === currentUserIdStr || 
-                           (coupon.userIds && Array.isArray(coupon.userIds) && coupon.userIds.map(String).includes(currentUserIdStr))
-      if (!hasPermission) {
-        purchaseCouponValidationMessage.value = '您无权使用此专属优惠券'
-        return false
-      }
-    }
-    
-    // 检查使用限制
-    if (coupon.usedCount >= coupon.usageLimit) {
-      purchaseCouponValidationMessage.value = '优惠券使用次数已达上限'
-      return false
-    }
-    
-    // 检查最低消费金额
-    const currentAmount = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
-    if (coupon.minAmount && currentAmount < coupon.minAmount) {
-      purchaseCouponValidationMessage.value = `订单金额需满¥${coupon.minAmount}才能使用此优惠券`
-      return false
-    }
-    
-    // 验证成功
-    selectedPurchaseCoupon.value = coupon
-    purchaseCouponValidationMessage.value = `优惠券验证成功：${coupon.name}`
-    ElMessage.success('优惠券验证成功')
-    return true
-    
-  } catch (error) {
-    console.error('验证优惠券失败:', error)
-    purchaseCouponValidationMessage.value = '验证失败，请重试'
-    return false
-  } finally {
-    purchaseCouponValidationLoading.value = false
-  }
-}
-
-const removePurchaseCoupon = () => {
-  selectedPurchaseCoupon.value = null
-  purchaseCouponCode.value = ''
-  purchaseCouponValidationMessage.value = ''
-}
-
-const selectAvailablePurchaseCoupon = (coupon) => {
-  // 检查优惠券是否可用
-  const currentAmount = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true).finalTotal
-  if (coupon.minAmount && currentAmount < coupon.minAmount) {
-    ElMessage.warning(`订单金额需满¥${coupon.minAmount}才能使用此优惠券`)
-    return
-  }
-  
-  selectedPurchaseCoupon.value = coupon
-  purchaseCouponCode.value = coupon.code
-  purchaseCouponValidationMessage.value = `已选择优惠券：${coupon.name}`
-}
-
-// 确认批量购买
-const confirmBatchPurchase = async () => {
-  if (!selectedPaymentMethod.value) {
-    ElMessage.warning('请选择支付方式')
-    return
-  }
-  
-  batchPurchaseLoading.value = true
-  
-  try {
-    // 批量购买逻辑
-    const purchaseResults = []
-    let successCount = 0
-    let failCount = 0
-    
-    for (const item of cartItems.value) {
-      try {
-        // 为每个商品生成卡密
-        const cards = await generateCardsForPurchase(item.id, item.quantity)
-        
-        if (cards.length === item.quantity) {
-          // 更新卡密状态为已购买
-          const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-          const updatedCards = allCards.map(card => {
-            if (cards.some(purchasedCard => purchasedCard.id === card.id)) {
-              return {
-                ...card,
-                status: 'used',
-                purchasedBy: userStore.user.id,
-                purchasedAt: new Date().toISOString(),
-                purchasePrice: item.price
-              }
-            }
-            return card
-          })
-          localStorage.setItem('all_cards', JSON.stringify(updatedCards))
-          
-          // 计算实际支付金额（考虑优惠券）
-          const itemTotalCost = item.price * item.quantity
-          const itemDiscount = selectedCoupon.value ? 
-            (itemTotalCost / cartTotal.value) * couponDiscount.value : 0
-          const actualCost = itemTotalCost - itemDiscount
-          
-          // 扣除用户余额
-          const updatedUsers = JSON.parse(localStorage.getItem('users') || '[]')
-          const userIndex = updatedUsers.findIndex(u => u.id === userStore.user.id)
-          if (userIndex !== -1) {
-            updatedUsers[userIndex].balance -= actualCost
-            localStorage.setItem('users', JSON.stringify(updatedUsers))
-            
-            // 更新用户store
-            userStore.user.balance -= actualCost
-          }
-          
-          // 记录购买记录
-          const purchaseRecord = {
-            id: Date.now() + Math.random(),
-            userId: userStore.user.id,
-            productId: item.id,
-            productName: item.name,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            originalPrice: itemTotalCost,
-            discountAmount: itemDiscount,
-            totalPrice: actualCost,
-            cards: cards,
-            purchaseTime: new Date().toISOString(),
-            paymentMethod: selectedPaymentMethod.value,
-            couponUsed: selectedCoupon.value ? {
-              id: selectedCoupon.value.id,
-              code: selectedCoupon.value.code,
-              name: selectedCoupon.value.name,
-              discountAmount: itemDiscount
-            } : null
-          }
-          
-          const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]')
-          existingOrders.push(purchaseRecord)
-          localStorage.setItem('orders', JSON.stringify(existingOrders))
-          
-          // 更新优惠券使用次数
-          if (selectedCoupon.value) {
-            const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
-            const couponIndex = allCoupons.findIndex(c => c.id === selectedCoupon.value.id)
-            if (couponIndex !== -1) {
-              allCoupons[couponIndex].usedCount += 1
-              localStorage.setItem('coupons', JSON.stringify(allCoupons))
-            }
-          }
-          
-          purchaseResults.push({
-            product: item.name,
-            success: true,
-            cards: cards,
-            message: `成功购买 ${item.quantity} 个 ${item.name}`
-          })
-          
-          successCount++
-        } else {
-          purchaseResults.push({
-            product: item.name,
-            success: false,
-            message: `库存不足，只能购买 ${cards.length} 个`
-          })
-          failCount++
-        }
-      } catch (error) {
-        console.error(`购买 ${item.name} 失败:`, error)
-        purchaseResults.push({
-          product: item.name,
-          success: false,
-          message: `购买失败：${error.message}`
-        })
-        failCount++
-      }
-    }
-    
-    // 显示购买结果
-    if (successCount > 0) {
-      ElMessage.success(`批量购买完成！成功购买 ${successCount} 个商品`)
-      
-      // 清空购物车
-      cartItems.value = []
-      showCartSidebar.value = false
-      showBatchPurchaseDialog.value = false
-      
-      // 刷新产品数据
-      await loadProducts()
-      
-      // 显示购买详情
-      setTimeout(() => {
-        showPurchaseResults(purchaseResults)
-      }, 1000)
-    } else {
-      ElMessage.error('批量购买失败，请重试')
-    }
-    
-  } catch (error) {
-    console.error('批量购买出错:', error)
-    ElMessage.error('批量购买失败，请重试')
-  } finally {
-    batchPurchaseLoading.value = false
-  }
-}
-
-// 显示购买结果详情
-const showPurchaseResults = (results) => {
-  const successResults = results.filter(r => r.success)
-  const failResults = results.filter(r => !r.success)
-  
-  let message = ''
-  if (successResults.length > 0) {
-    message += `成功购买：\n${successResults.map(r => `• ${r.message}`).join('\n')}\n\n`
-  }
-  if (failResults.length > 0) {
-    message += `购买失败：\n${failResults.map(r => `• ${r.message}`).join('\n')}`
-  }
-  
-  ElMessageBox.alert(message, '购买结果', {
-    confirmButtonText: '确定',
-    type: successResults.length > 0 ? 'success' : 'error'
-  })
-}
-
-// 选择卡密类型
-const selectCardType = (cardType) => {
-  selectedCardType.value = cardType
-  // 重新计算最大购买数量
-  const maxQty = getMaxQuantity()
-  if (purchaseQuantity.value > maxQty) {
-    purchaseQuantity.value = Math.max(1, maxQty) // 确保购买数量至少为1
-  }
-}
-
-// 获取卡密类型标签颜色
-const getCardTypeTagType = (duration) => {
-  const typeMap = {
-    '7天': 'info',
-    '1个月': 'success',
-    '3个月': 'warning',
-    '6个月': 'danger',
-    '1年': 'danger',
-    '永久': 'success'
-  }
-  
-  // 如果是预设的时间选项
-  if (typeMap[duration]) {
-    return typeMap[duration]
-  }
-  
-  // 如果是自定义时间，根据数值范围判断
-  const customMatch = duration.match(/^(\d+)(天|周|个月|年)$/)
-  if (customMatch) {
-    const value = parseInt(customMatch[1])
-    const unit = customMatch[2]
-    
-    // 转换为天数进行比较
-    let totalDays = 0
-    switch (unit) {
-      case '天':
-        totalDays = value
-        break
-      case '周':
-        totalDays = value * 7
-        break
-      case '个月':
-        totalDays = value * 30
-        break
-      case '年':
-        totalDays = value * 365
-        break
-    }
-    
-    if (totalDays <= 30) return 'info'        // 30天以内
-    if (totalDays <= 90) return 'success'     // 3个月以内  
-    if (totalDays <= 180) return 'warning'    // 6个月以内
-    return 'danger'                           // 6个月以上
-  }
-  
-  return 'info'
-}
-
-// 获取卡密类型库存数量
-const getCardTypeStock = (cardTypeId) => {
-  try {
-    const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-    const matchingCards = allCards.filter(card => 
-      String(card.zoneId) === String(currentProduct.value?.zoneId) &&
-      String(card.productId) === String(currentProduct.value?.id) &&
-      String(card.cardTypeId) === String(cardTypeId) &&
-      card.status === 'unused' &&
-      !card.purchasedBy
-    )
-    
-    console.log(`库存查询 - 卡密类型ID: ${cardTypeId}, 找到: ${matchingCards.length} 张`)
-    console.log('库存查询条件:', {
-      专区ID: currentProduct.value?.zoneId,
-      商品ID: currentProduct.value?.id,
-      卡密类型ID: cardTypeId,
-      总卡密数: allCards.length
-    })
-    
-    return matchingCards.length
-  } catch (error) {
-    console.error('库存查询出错:', error)
-    return 0
-  }
-}
-
-// 获取最大购买数量
-const getMaxQuantity = () => {
-  if (!currentProduct.value) return 1
-  
-  let maxStock = 0
-  
-  if (selectedCardType.value) {
-    maxStock = getCardTypeStock(selectedCardType.value.id)
-  } else {
-    maxStock = currentProduct.value.stock || 0
-  }
-  
-  // 确保最大值至少为1，避免 min > max 的错误
-  return Math.max(1, Math.min(maxStock, 99))
-}
-
-const confirmPurchase = async () => {
-  if (!currentProduct.value) return
-  
-  purchasing.value = true
-  
-  try {
-    console.log('🛒 开始购买流程:', currentProduct.value.name, purchaseQuantity.value, '张')
-    
-    // 从卡密管理中获取可用卡密
-    const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-    let availableCards
-    
-    if (selectedCardType.value) {
-      // 如果选择了卡密类型，只获取该类型的卡密
-      availableCards = allCards.filter(card => 
-        card.status === 'unused' && 
-        !card.purchasedBy && 
-        String(card.zoneId) === String(currentProduct.value.zoneId) && 
-        String(card.productId) === String(currentProduct.value.id) &&
-        String(card.cardTypeId) === String(selectedCardType.value.id)
-      )
-      console.log('🎯 按类型筛选卡密:', selectedCardType.value.name, availableCards.length, '张')
-      console.log('筛选条件:', {
-        卡密类型ID: selectedCardType.value.id,
-        专区ID: currentProduct.value.zoneId,
-        商品ID: currentProduct.value.id,
-        查找的卡密总数: allCards.length
-      })
-    } else {
-      // 兼容没有卡密类型的商品
-      availableCards = allCards.filter(card => 
-        card.status === 'unused' && 
-        !card.purchasedBy && 
-        String(card.zoneId) === String(currentProduct.value.zoneId) && 
-        String(card.productId) === String(currentProduct.value.id)
-      )
-    }
-    
-    console.log('📦 找到可用卡密:', availableCards.length, '张')
-    
-    // 检查库存是否足够
-    if (availableCards.length < purchaseQuantity.value) {
-      ElMessage.error(`库存不足！当前只有 ${availableCards.length} 张可用卡密`)
-      return
-    }
-    
-    // 模拟购买处理
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // 检查系统设置：是否自动审核订单
-    const systemSettings = JSON.parse(localStorage.getItem('system_settings') || '{}')
-    const autoApproveOrders = systemSettings.autoApproveOrders !== false // 默认为true
-    
-    // 使用VIP折扣计算最终价格
-    const priceInfo = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true)
-    const couponDiscountAmount = purchaseCouponDiscount.value
-    const totalCost = Math.max(0, priceInfo.finalTotal - couponDiscountAmount)
-    const orderNumber = generateOrderNumber()
-    const purchaseTime = new Date().toLocaleString('zh-CN')
-    
-    // 生成订单ID（手动审核时需要提前生成以便预留卡密）
-    const orderId = Date.now()
-    
-    // 取出需要的卡密数量
-    const purchasedCards = availableCards.slice(0, purchaseQuantity.value)
-    console.log('💳 取出卡密:', purchasedCards.map(c => c.cardNumber))
-    
-    // 只有自动审核时才更新卡密状态为已购买
-    if (autoApproveOrders) {
-      const cardIndices = []
-      purchasedCards.forEach(purchasedCard => {
-        const cardIndex = allCards.findIndex(card => card.id === purchasedCard.id)
-        if (cardIndex !== -1) {
-          allCards[cardIndex].status = 'sold'
-          allCards[cardIndex].purchasedBy = userStore.user.id
-          allCards[cardIndex].purchaser = userStore.user.username
-          allCards[cardIndex].purchaseTime = purchaseTime
-          cardIndices.push(cardIndex)
-        }
-      })
-      
-      // 保存更新后的卡密数据
-      localStorage.setItem('all_cards', JSON.stringify(allCards))
-      console.log('✅ 已更新', cardIndices.length, '张卡密状态为已购买')
-    } else {
-      // 如果手动审核，将卡密标记为预留状态
-      const cardIndices = []
-      purchasedCards.forEach(purchasedCard => {
-        const cardIndex = allCards.findIndex(card => card.id === purchasedCard.id)
-        if (cardIndex !== -1) {
-          allCards[cardIndex].status = 'reserved' // 预留状态，等待审核
-          allCards[cardIndex].reservedBy = userStore.user.id
-          allCards[cardIndex].reservedOrderId = orderId // 使用订单ID
-          cardIndices.push(cardIndex)
-        }
-      })
-      
-      // 保存更新后的卡密数据
-      localStorage.setItem('all_cards', JSON.stringify(allCards))
-      console.log('⏳ 已预留', cardIndices.length, '张卡密等待审核')
-    }
-    
-    // 创建订单记录
-    const order = {
-      id: orderId,
-      orderNumber,
-      userId: userStore.user.id,
-      username: userStore.user.username,
-      productId: currentProduct.value.id,
-      productName: currentProduct.value.name,
-      zoneId: currentProduct.value.zoneId,
-      zoneName: zones.value.find(z => z.id === currentProduct.value.zoneId)?.name || '',
-      quantity: purchaseQuantity.value,
-      unitPrice: priceInfo.actualPrice, // 使用实际单价（可能是卡密类型价格）
-      originalAmount: priceInfo.originalTotal, // 原价总额
-      totalAmount: totalCost, // 实际支付金额
-      discount: priceInfo.discount, // 折扣率
-      savings: priceInfo.totalSavings, // 节省金额
-      couponDiscount: couponDiscountAmount, // 优惠券折扣金额
-      couponCode: selectedPurchaseCoupon.value?.code || '', // 优惠券代码
-      couponName: selectedPurchaseCoupon.value?.name || '', // 优惠券名称
-      userLevel: user.value?.level || '普通', // 用户等级
-      paymentMethod: selectedPaymentMethod.value,
-      status: autoApproveOrders ? 'completed' : 'pending', // 根据系统设置决定订单状态
-      createTime: purchaseTime,
-      completeTime: autoApproveOrders ? purchaseTime : null, // 只有自动审核时才设置完成时间
-      cardKeys: autoApproveOrders ? purchasedCards.map(card => card.cardNumber) : [], // 只有自动审核时才分配卡密
-      cardIds: autoApproveOrders ? purchasedCards.map(card => card.id) : [], // 保存卡密ID用于后续操作
-      cardTypeId: selectedCardType.value?.id || null, // 卡密类型ID
-      cardTypeName: selectedCardType.value?.name || null, // 卡密类型名称
-      cardTypePrice: selectedCardType.value?.price || null // 卡密类型价格
-    }
-    
-    // 保存订单
-    const allOrders = JSON.parse(localStorage.getItem('all_orders') || '[]')
-    allOrders.unshift(order)
-    localStorage.setItem('all_orders', JSON.stringify(allOrders))
-    
-    // 更新优惠券使用次数
-    if (selectedPurchaseCoupon.value) {
-      const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
-      const couponIndex = allCoupons.findIndex(c => c.id === selectedPurchaseCoupon.value.id)
-      if (couponIndex !== -1) {
-        allCoupons[couponIndex].usedCount += 1
-        localStorage.setItem('coupons', JSON.stringify(allCoupons))
-        console.log('✅ 优惠券使用次数已更新:', selectedPurchaseCoupon.value.name)
-      }
-    }
-    
-    // 如果使用余额支付，扣除余额
-    if (selectedPaymentMethod.value === 'balance') {
-      const newBalance = (userStore.user.balance || 0) - totalCost
-      await userStore.updateUserBalance(
-        userStore.user.id,
-        newBalance,
-        `购买商品：${currentProduct.value.name}`
-      )
-      await userStore.refreshCurrentUser()
-    }
-    
-    // 重新加载数据以更新库存显示
-    loadData()
-    
-    // 显示购买成功消息，包含VIP优惠和优惠券信息
-    let successMessage = ''
-    if (autoApproveOrders) {
-      // 自动审核订单 - 立即完成
-      if (priceInfo.hasDiscount && couponDiscountAmount > 0) {
-        successMessage = `购买成功！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，优惠券省了¥${couponDiscountAmount.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
-      } else if (priceInfo.hasDiscount) {
-        successMessage = `购买成功！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
-      } else if (couponDiscountAmount > 0) {
-        successMessage = `购买成功！优惠券省了¥${couponDiscountAmount.toFixed(2)}，实付¥${totalCost.toFixed(2)}`
-      } else {
-        successMessage = `购买成功！实付¥${totalCost.toFixed(2)}`
-      }
-    } else {
-      // 手动审核订单 - 等待审核
-      if (priceInfo.hasDiscount && couponDiscountAmount > 0) {
-        successMessage = `订单已提交，等待审核！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，优惠券省了¥${couponDiscountAmount.toFixed(2)}，应付¥${totalCost.toFixed(2)}`
-      } else if (priceInfo.hasDiscount) {
-        successMessage = `订单已提交，等待审核！${userVipInfo.value.name}优惠省了¥${priceInfo.totalSavings.toFixed(2)}，应付¥${totalCost.toFixed(2)}`
-      } else if (couponDiscountAmount > 0) {
-        successMessage = `订单已提交，等待审核！优惠券省了¥${couponDiscountAmount.toFixed(2)}，应付¥${totalCost.toFixed(2)}`
-      } else {
-        successMessage = `订单已提交，等待审核！应付¥${totalCost.toFixed(2)}`
-      }
-    }
-    
-    ElMessage.success(successMessage)
-    showPurchaseDialog.value = false
-    
-    // 显示真实的卡密信息
-    showCardKeys(order.cardKeys)
-    
-    console.log('🎉 购买流程完成')
-    
-  } catch (error) {
-    console.error('购买失败:', error)
-    ElMessage.error('购买失败，请重试')
-  } finally {
-    purchasing.value = false
-  }
-}
-
-const generateOrderNumber = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const timestamp = Date.now().toString().slice(-6)
-  return `CD${year}${month}${day}${timestamp}`
-}
-
-// generateCardKeys 函数已删除，现在使用真实的卡密数据
-
-const showCardKeys = (cardKeys) => {
-  ElMessageBox.alert(
-    `<div style="max-height: 300px; overflow-y: auto;">
-      <p style="margin-bottom: 16px;"><strong>您的卡密信息：</strong></p>
-      ${cardKeys.map(key => `<div style="margin: 8px 0; padding: 8px; background: #f5f7fa; border-radius: 4px; font-family: monospace;">${key}</div>`).join('')}
-      <p style="margin-top: 16px; color: #E6A23C;"><strong>请妥善保管卡密，系统不会再次显示！</strong></p>
-    </div>`,
-    '卡密信息',
-    {
-      confirmButtonText: '我已保存',
-      dangerouslyUseHTMLString: true
-    }
-  )
-}
-
-const handleImageError = (event) => {
-  event.target.src = '/ceshi/default-product.jpg'
-}
-
-// 商品详情相关方法
-const showProductDetails = (product) => {
-  currentDetailProduct.value = product
-  currentDetailImage.value = product.image || '/ceshi/default-product.jpg'
-  detailQuantity.value = 1
-  activeDetailTab.value = 'details'
-  showProductDetailDialog.value = true
-}
-
-const closeProductDetail = () => {
-  showProductDetailDialog.value = false
-  currentDetailProduct.value = null
-  currentDetailImage.value = ''
-}
-
-// 评价功能方法
-const openReviewDialog = (product) => {
-  currentReviewProduct.value = product
-  newReview.rating = 5
-  newReview.content = ''
-  newReview.images = []
-  showReviewDialog.value = true
-}
-
-const closeReviewDialog = () => {
-  showReviewDialog.value = false
-  currentReviewProduct.value = null
-}
-
-const submitReview = async () => {
-  if (!newReview.content.trim()) {
-    ElMessage.warning('请填写评价内容')
-    return
-  }
-
-  try {
-    // 模拟提交评价到后端
-    const review = {
-      id: Date.now(),
-      productId: currentReviewProduct.value.id,
-      userId: userStore.user.id,
-      userName: userStore.user.name,
-      avatar: userStore.user.avatar || '/default-avatar.jpg',
-      rating: newReview.rating,
-      content: newReview.content,
-      images: newReview.images,
-      date: new Date().toISOString(),
-      likes: 0,
-      isHelpful: false
-    }
-
-    // 将评价添加到产品的评价列表中
-    if (!currentReviewProduct.value.reviews) {
-      currentReviewProduct.value.reviews = []
-    }
-    currentReviewProduct.value.reviews.unshift(review)
-    
-    // 更新产品评分
-    updateProductRating(currentReviewProduct.value)
-    
-    // 保存评论数据到localStorage
-    saveReviewsData()
-
-    ElMessage.success('评价提交成功')
-    closeReviewDialog()
-  } catch (error) {
-    ElMessage.error('提交评价失败')
-  }
-}
-
-const updateProductRating = (product) => {
-  if (!product.reviews || product.reviews.length === 0) return
-  
-  const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
-  product.rating = parseFloat((totalRating / product.reviews.length).toFixed(1))
-  product.reviewCount = product.reviews.length
-}
-
-// 保存评论数据到localStorage
-const saveReviewsData = () => {
-  try {
-    console.log('=== 保存评论数据 ===')
-    
-    // 收集所有产品的评论数据
-    const allReviewsData = {}
-    
-    // 从 products 数组中收集评论
-    products.value.forEach(product => {
-      if (product.reviews && product.reviews.length > 0) {
-        allReviewsData[product.id] = {
-          reviews: product.reviews,
-          rating: product.rating,
-          reviewCount: product.reviewCount
-        }
-      }
-    })
-    
-    // 保存到localStorage
-    localStorage.setItem('product_reviews', JSON.stringify(allReviewsData))
-    console.log('评论数据保存成功，共', Object.keys(allReviewsData).length, '个产品有评论')
-    
-    // 调试日志
-    Object.entries(allReviewsData).forEach(([productId, data]) => {
-      console.log(`产品 ${productId}: ${data.reviewCount} 条评论，评分 ${data.rating}`)
-    })
-    
-  } catch (error) {
-    console.error('保存评论数据失败:', error)
-    ElMessage.error('保存评论失败')
-  }
-}
-
-// 从 localStorage 加载评论数据
-const loadReviewsData = () => {
-  try {
-    console.log('=== 加载评论数据 ===')
-    
-    const savedReviews = localStorage.getItem('product_reviews')
-    if (!savedReviews) {
-      console.log('未找到已保存的评论数据')
-      return
-    }
-    
-    const reviewsData = JSON.parse(savedReviews)
-    console.log('加载到', Object.keys(reviewsData).length, '个产品的评论数据')
-    
-    // 将评论数据分配给对应的产品
-    products.value.forEach(product => {
-      if (reviewsData[product.id]) {
-        const reviewData = reviewsData[product.id]
-        product.reviews = reviewData.reviews
-        product.rating = reviewData.rating
-        product.reviewCount = reviewData.reviewCount
-        console.log(`恢复产品 ${product.id} (“${product.name}”) 的评论:`, product.reviewCount, '条')
-      }
-    })
-    
-    console.log('评论数据加载完成')
-    
-  } catch (error) {
-    console.error('加载评论数据失败:', error)
-  }
-}
-
-const formatTime = (dateString) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = now - date
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) {
-    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
-    if (diffHours === 0) {
-      const diffMinutes = Math.floor(diffTime / (1000 * 60))
-      return diffMinutes <= 0 ? '刚刚' : `${diffMinutes}分钟前`
-    }
-    return `${diffHours}小时前`
-  } else if (diffDays < 7) {
-    return `${diffDays}天前`
-  } else {
-    return date.toLocaleDateString('zh-CN')
-  }
-}
-
-const getProductImages = (product) => {
-  // 返回产品的所有图片，如果没有额外图片就返回主图片
-  const images = [product.image || '/ceshi/default-product.jpg']
-  // 可以添加更多产品图片，这里模拟几张图片
-  if (product.gallery && product.gallery.length > 0) {
-    return [...images, ...product.gallery]
-  }
-  // 模拟多张图片
-  return images.concat([
-    '/ceshi/default-product.jpg',
-    '/ceshi/default-product.jpg'
-  ].slice(1)) // 避免重复显示相同图片
+  const idx = cartItems.value.findIndex(i => i.id === productId)
+  if (idx !== -1) { cartItems.value.splice(idx, 1); ElMessage.success('已移除') }
 }
 
 const addToCartFromDetail = () => {
   if (!currentDetailProduct.value) return
-  
-  // 设置商品数量
-  currentDetailProduct.value.quantity = detailQuantity.value
-  
-  // 调用原有的加入购物车方法
-  addToCart(currentDetailProduct.value)
-  
-  // 可选择关闭详情弹窗
-  // closeProductDetail()
+  const existing = cartItems.value.find(i => i.id === currentDetailProduct.value.id)
+  if (existing) {
+    if (existing.quantity + detailQuantity.value <= currentDetailProduct.value.stock) {
+      existing.quantity += detailQuantity.value
+      ElMessage.success('已添加到购物车')
+    } else ElMessage.warning('库存不足')
+  } else {
+    cartItems.value.push({ ...currentDetailProduct.value, quantity: detailQuantity.value })
+    ElMessage.success('已添加到购物车')
+  }
+  showProductDetailDialog.value = false
+}
+
+// 购买操作
+const buyNow = (product) => {
+  currentProduct.value = product
+  purchaseQuantity.value = 1
+  selectedPaymentMethod.value = 'balance'
+  selectedCardType.value = null
+  selectedPurchaseCoupon.value = null
+  purchaseCouponCode.value = ''
+  showPurchaseDialog.value = true
+  if (product.cardTypes?.length > 0) {
+    const firstAvailable = product.cardTypes.find(t => getCardTypeStock(t.id) > 0)
+    if (firstAvailable) selectedCardType.value = firstAvailable
+  }
 }
 
 const buyNowFromDetail = () => {
   if (!currentDetailProduct.value) return
-  
-  // 设置商品数量
-  currentDetailProduct.value.quantity = detailQuantity.value
-  
-  // 关闭详情弹窗
-  closeProductDetail()
-  
-  // 调用原有的立即购买方法
-  buyNow(currentDetailProduct.value)
+  currentProduct.value = currentDetailProduct.value
+  purchaseQuantity.value = detailQuantity.value
+  selectedPaymentMethod.value = 'balance'
+  selectedCardType.value = null
+  selectedPurchaseCoupon.value = null
+  purchaseCouponCode.value = ''
+  showProductDetailDialog.value = false
+  showPurchaseDialog.value = true
 }
 
-const loadPaymentSettings = () => {
-  try {
-    const savedSettings = localStorage.getItem('payment_settings')
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings)
-      availablePaymentMethods.value.alipay = settings.alipay?.enabled || false
-      availablePaymentMethods.value.wechat = settings.wechat?.enabled || false
-      availablePaymentMethods.value.bankTransfer = settings.other?.bankTransfer?.enabled || false
-      availablePaymentMethods.value.paypal = settings.other?.paypal?.enabled || false
-    }
-  } catch (error) {
-    console.error('加载支付设置失败:', error)
-  }
+const proceedToCheckout = () => {
+  if (!cartItems.value.length) { ElMessage.warning('购物车是空的'); return }
+  if (!userStore.user) { ElMessage.warning('请先登录'); return }
+  showBatchPurchaseDialog.value = true
 }
 
-const loadData = () => {
+const showProductDetails = (product) => {
+  currentDetailProduct.value = product
+  detailQuantity.value = 1
+  showProductDetailDialog.value = true
+}
+
+// 优惠券
+const validatePurchaseCouponCode = async () => {
+  if (!purchaseCouponCode.value.trim()) { ElMessage.warning('请输入优惠券代码'); return }
+  purchaseCouponValidationLoading.value = true
   try {
-    // 加载专区数据
-    const savedZones = localStorage.getItem('card_zones')
-    if (savedZones) {
-      const allZones = JSON.parse(savedZones)
-      zones.value = allZones.filter(zone => zone.isActive)
-      
-      console.log('📱 购买页面加载专区数据:', zones.value.length, '个活跃专区')
-      
-      // 检查每个专区的图标数据
-      zones.value.forEach((zone, index) => {
-        console.log(`专区 ${index + 1}:`, {
-          id: zone.id,
-          name: zone.name,
-          icon: zone.icon || '无',
-          hasCustomIcon: !!zone.customIcon,
-          customIconLength: zone.customIcon ? zone.customIcon.length : 0
-        })
-      })
-    } else {
-      // 如果没有专区数据，创建默认专区
-      zones.value = [
-        {
-          id: 1,
-          name: '默认专区',
-          icon: '🎯',
-          description: '默认商品专区',
-          productCount: 0,
-          isActive: true
-        }
-      ]
-    }
-    
-    // 加载商品数据并从卡密管理中统计实际库存
-    const savedProducts = localStorage.getItem('card_products')
+    const allCoupons = JSON.parse(localStorage.getItem('coupons') || '[]')
+    const coupon = allCoupons.find(c => c.code.toUpperCase() === purchaseCouponCode.value.toUpperCase())
+    if (!coupon) { ElMessage.error('优惠券不存在'); return }
+    if (coupon.usedCount >= coupon.usageLimit) { ElMessage.error('优惠券已用完'); return }
+    if (new Date() > new Date(coupon.validTo)) { ElMessage.error('优惠券已过期'); return }
+    selectedPurchaseCoupon.value = coupon
+    ElMessage.success('优惠券验证成功')
+  } finally { purchaseCouponValidationLoading.value = false }
+}
+
+const removePurchaseCoupon = () => { selectedPurchaseCoupon.value = null; purchaseCouponCode.value = '' }
+
+// 确认购买
+const confirmPurchase = async () => {
+  if (!currentProduct.value) return
+  purchasing.value = true
+  try {
     const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
+    let availableCards = selectedCardType.value
+      ? allCards.filter(c => c.status === 'unused' && !c.purchasedBy &&
+          String(c.zoneId) === String(currentProduct.value.zoneId) && String(c.productId) === String(currentProduct.value.id) &&
+          String(c.cardTypeId) === String(selectedCardType.value.id))
+      : allCards.filter(c => c.status === 'unused' && !c.purchasedBy &&
+          String(c.zoneId) === String(currentProduct.value.zoneId) && String(c.productId) === String(currentProduct.value.id))
     
-    console.log('📦 开始统计卡密库存，总卡密数量:', allCards.length)
+    if (availableCards.length < purchaseQuantity.value) { ElMessage.error('库存不足'); return }
     
-    // 按专区+商品统计可用卡密数量
-    const stockStats = {}
+    await new Promise(r => setTimeout(r, 1000))
     
-    allCards.forEach(card => {
-      // 只统计未使用且未被购买的卡密作为可用库存
-      if (card.status === 'unused' && !card.purchasedBy && card.zoneId && card.productId) {
-        const key = `${card.zoneId}-${card.productId}`
-        if (!stockStats[key]) {
-          stockStats[key] = 0
-        }
-        stockStats[key]++
+    const priceInfo = calculateFinalPrice(currentProduct.value.price, purchaseQuantity.value, true)
+    const totalCost = Math.max(0, priceInfo.finalTotal - purchaseCouponDiscount.value)
+    const purchasedCards = availableCards.slice(0, purchaseQuantity.value)
+    const purchaseTime = new Date().toLocaleString('zh-CN')
+    
+    // 更新卡密状态
+    purchasedCards.forEach(pc => {
+      const idx = allCards.findIndex(c => c.id === pc.id)
+      if (idx !== -1) {
+        allCards[idx].status = 'sold'
+        allCards[idx].purchasedBy = userStore.user.id
+        allCards[idx].purchaser = userStore.user.username
+        allCards[idx].purchaseTime = purchaseTime
       }
     })
+    localStorage.setItem('all_cards', JSON.stringify(allCards))
     
-    console.log('📊 库存统计结果:', stockStats)
+    // 创建订单
+    const order = {
+      id: Date.now(),
+      orderNumber: `CD${Date.now()}`,
+      userId: userStore.user.id,
+      username: userStore.user.username,
+      productId: currentProduct.value.id,
+      productName: currentProduct.value.name,
+      quantity: purchaseQuantity.value,
+      totalAmount: totalCost,
+      status: 'completed',
+      createTime: purchaseTime,
+      cardKeys: purchasedCards.map(c => c.cardNumber)
+    }
+    const allOrders = JSON.parse(localStorage.getItem('all_orders') || '[]')
+    allOrders.unshift(order)
+    localStorage.setItem('all_orders', JSON.stringify(allOrders))
     
-    if (savedProducts) {
-      products.value = JSON.parse(savedProducts)
-        .filter(product => product.isActive)
-        .map(product => {
-          // 从卡密管理中获取实际库存
-          const stockKey = `${product.zoneId}-${product.id}`
-          const actualStock = stockStats[stockKey] || 0
-          
-          console.log(`商品 ${product.name} (${stockKey}): 实际库存 ${actualStock}`)
-          
-          return {
-            ...product,
-            stock: actualStock, // 使用实际的卡密库存
-            quantity: 1, // 添加默认购买数量
-            rating: product.rating || 4.5 // 添加默认评分
-          }
-        })
-      
-      console.log('✅ 商品库存统计完成，共', products.value.length, '个商品')
-      products.value.forEach(p => {
-        console.log(`- ${p.name}: ${p.stock} 张可用卡密`)
-      })
-    } else {
-      products.value = []
+    // 扣除余额
+    if (selectedPaymentMethod.value === 'balance') {
+      await userStore.updateUserBalance(userStore.user.id, (userStore.user.balance || 0) - totalCost, `购买：${currentProduct.value.name}`)
+      await userStore.refreshCurrentUser()
     }
     
-    // 如果有专区但没有对应的活跃专区，设置第一个专区为活跃
-    if (zones.value.length > 0) {
-      activeZone.value = zones.value[0].id
-    }
+    loadData()
+    ElMessage.success(`购买成功！实付¥${totalCost.toFixed(2)}`)
+    showPurchaseDialog.value = false
     
-    console.log('💳 购买页面数据加载完成，专区数量:', zones.value.length)
+    // 显示卡密
+    ElMessageBox.alert(
+      `<div style="max-height:300px;overflow-y:auto;">
+        <p><strong>您的卡密：</strong></p>
+        ${order.cardKeys.map(k => `<div style="margin:8px 0;padding:8px;background:#f5f7fa;border-radius:4px;font-family:monospace;">${k}</div>`).join('')}
+        <p style="color:#E6A23C;margin-top:16px;"><strong>请妥善保管！</strong></p>
+      </div>`,
+      '卡密信息',
+      { confirmButtonText: '我已保存', dangerouslyUseHTMLString: true }
+    )
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('购买失败')
+  } finally { purchasing.value = false }
+}
+
+// 批量购买
+const confirmBatchPurchase = async () => {
+  if (!selectedPaymentMethod.value) { ElMessage.warning('请选择支付方式'); return }
+  batchPurchaseLoading.value = true
+  try {
+    // 简化的批量购买逻辑
+    const totalCost = finalPaymentAmount.value
+    if ((userStore.user?.balance || 0) < totalCost) { ElMessage.error('余额不足'); return }
     
-    // 在所有数据加载完成后加载评论数据
-    setTimeout(() => {
-      loadReviewsData()
-    }, 100)
-    console.log('📦 已加载商品数据:', products.value)
-  } catch (error) {
-    console.error('加载数据失败:', error)
-  }
+    await userStore.updateUserBalance(userStore.user.id, (userStore.user.balance || 0) - totalCost, '批量购买')
+    await userStore.refreshCurrentUser()
+    
+    cartItems.value = []
+    showBatchPurchaseDialog.value = false
+    ElMessage.success('批量购买成功！')
+  } catch (e) {
+    ElMessage.error('购买失败')
+  } finally { batchPurchaseLoading.value = false }
+}
+
+// 评价
+const submitReview = () => {
+  if (!newReview.content.trim()) { ElMessage.warning('请填写评价内容'); return }
+  ElMessage.success('评价提交成功')
+  showReviewDialog.value = false
+}
+
+// 数据加载
+const loadData = async () => {
+  loading.value = true
+  try {
+    // 加载专区 - 从 card_zones 读取
+    const savedZones = JSON.parse(localStorage.getItem('card_zones') || '[]')
+    zones.value = savedZones.length ? savedZones : [{ id: 1, name: '默认专区', icon: '🎯', productCount: 0 }]
+    if (zones.value.length && !zones.value.find(z => z.id === activeZone.value)) activeZone.value = zones.value[0].id
+    
+    // 加载商品 - 从 card_products 读取
+    const savedProducts = JSON.parse(localStorage.getItem('card_products') || '[]')
+    const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
+    
+    products.value = savedProducts.map(p => {
+      const stock = allCards.filter(c => c.status === 'unused' && !c.purchasedBy &&
+        String(c.zoneId) === String(p.zoneId) && String(c.productId) === String(p.id)).length
+      return { ...p, stock, quantity: 1, rating: p.rating || 4.5 }
+    })
+    
+    // 更新专区商品数量
+    zones.value.forEach(z => { z.productCount = products.value.filter(p => String(p.zoneId) === String(z.id)).length })
+  } finally { loading.value = false }
 }
 
 onMounted(() => {
-  loadPaymentSettings()
-  
-  // 加载专区和商品数据
-  loading.value = true
   loadData()
-  
-  // 初始化优惠券数据
-  initializeCoupons()
-  setTimeout(() => {
-    loading.value = false
-  }, 1000)
+  setTimeout(setupObserver, 100)
 })
 
-// 监听用户登录状态和购物车变化，更新优惠券列表
-watch(() => [userStore.user?.id, cartItems.value.length], () => {
-  if (userStore.user?.id) {
-    initializeCoupons()
-  }
-}, { immediate: false })
-
-// 监听购物车总金额变化，更新优惠券列表（因为有些优惠券有最低消费要求）
-watch(() => cartTotal.value, () => {
-  if (userStore.user?.id) {
-    initializeCoupons()
-  }
+onUnmounted(() => {
+  if (observer) observer.disconnect()
 })
 </script>
 
 <style lang="scss" scoped>
-.card-purchase {
+// 设计系统
+$primary: #2563EB;
+$primary-light: #3B82F6;
+$success: #10B981;
+$warning: #F59E0B;
+$danger: #EF4444;
+$text: #1E293B;
+$text-muted: #64748B;
+$border: #E2E8F0;
+$bg: #F8FAFC;
+$card-bg: rgba(255, 255, 255, 0.9);
+
+// 动画关键帧
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.1); opacity: 0.3; }
+}
+
+// 动画类
+.animate-fade-in {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+.animate-in {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.5s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+.card-purchase-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  background: linear-gradient(135deg, $bg 0%, #EEF2FF 100%);
   position: relative;
+}
+
+// 背景装饰
+.bg-decoration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.4;
   
-  // 微妙的渐变纹理
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
-      linear-gradient(45deg, rgba(6, 182, 212, 0.02) 0%, rgba(59, 130, 246, 0.02) 100%);
-    pointer-events: none;
+  &.orb-1 {
+    width: 600px;
+    height: 600px;
+    background: linear-gradient(135deg, rgba($primary, 0.2), rgba(#8B5CF6, 0.15));
+    top: -200px;
+    right: -200px;
+    animation: pulse 10s ease-in-out infinite;
   }
   
-  // 企业级导航栏
-  .enterprise-navbar {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-    
-    .nav-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 32px;
-      display: flex;
-      align-items: center;
-      height: 80px;
-      gap: 32px;
-      
-      .nav-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-shrink: 0;
-        
-        .brand-icon {
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-          border-radius: 10px;
-          color: white;
-          
-          svg {
-            width: 20px;
-            height: 20px;
-          }
-        }
-        
-        .brand-text {
-          font-size: 24px;
-          font-weight: 700;
-          color: #1e293b;
-          letter-spacing: -0.025em;
-          
-          .pro-suffix {
-            color: #6366f1;
-            font-size: 14px;
-            font-weight: 600;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-      }
-      
-      .nav-search {
-        flex: 1;
-        max-width: 500px;
-        
-        .enterprise-search {
-          :deep(.el-input__wrapper) {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-            
-            &:hover {
-              border-color: #c7d2fe;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
-            
-            &.is-focus {
-              border-color: #6366f1;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-            }
-          }
-          
-          :deep(.el-input__inner) {
-            color: #1e293b;
-            font-size: 15px;
-            
-            &::placeholder {
-              color: #64748b;
-            }
-          }
-        }
-      }
-      
-      .nav-actions {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        
-        .user-badge {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 8px 16px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 50px;
-          
-          .user-avatar {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-          }
-          
-          .user-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: #374151;
-          }
-        }
-      }
-    }
-  }
-  
-  // 页面英雄区域
-  .page-hero {
-    position: relative;
-    min-height: 320px;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    
-    .hero-background {
-      position: absolute;
-      inset: 0;
-      
-      .hero-pattern {
-        position: absolute;
-        inset: 0;
-        opacity: 0.1;
-        background-image: 
-          radial-gradient(circle at 25px 25px, #6366f1 2px, transparent 2px);
-        background-size: 50px 50px;
-      }
-      
-      .hero-gradient {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          135deg,
-          rgba(99, 102, 241, 0.1) 0%,
-          rgba(139, 92, 246, 0.1) 50%,
-          rgba(59, 130, 246, 0.1) 100%
-        );
-      }
-    }
-    
-    .hero-content {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 80px 32px;
-      position: relative;
-      z-index: 2;
-      
-      .hero-text {
-        max-width: 800px;
-        
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          color: #6366f1;
-          padding: 10px 20px;
-          border-radius: 50px;
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 32px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-          
-          .badge-icon {
-            font-size: 16px;
-          }
-        }
-        
-        .hero-title {
-          font-size: 56px;
-          font-weight: 800;
-          color: #0f172a;
-          line-height: 1.1;
-          margin-bottom: 24px;
-          letter-spacing: -0.02em;
-          
-          .title-gradient {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-        
-        .hero-subtitle {
-          font-size: 18px;
-          color: #475569;
-          line-height: 1.7;
-          margin-bottom: 48px;
-          font-weight: 400;
-        }
-        
-        .hero-stats {
-          display: flex;
-          gap: 48px;
-          
-          .stat-item {
-            text-align: center;
-            
-            .stat-number {
-              font-size: 32px;
-              font-weight: 700;
-              color: #0f172a;
-              margin-bottom: 8px;
-              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-            }
-            
-            .stat-label {
-              font-size: 14px;
-              color: #64748b;
-              font-weight: 500;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // 企业级筛选器
-  .enterprise-filters {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(15, 23, 42, 0.08);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    
-    .filters-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      
-      .filters-left {
-        display: flex;
-        gap: 32px;
-        align-items: center;
-        
-        .filter-section {
-          h3 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #374151;
-            margin: 0 0 8px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-          
-          :deep(.el-select) {
-            width: 180px;
-            
-            .el-input__wrapper {
-              border-radius: 10px;
-              border: 1px solid #e5e7eb;
-              transition: all 0.2s ease;
-              
-              &:hover {
-                border-color: #6366f1;
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-              }
-              
-              &.is-focus {
-                border-color: #6366f1;
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-              }
-            }
-          }
-        }
-      }
-      
-      .filters-right {
-        .results-summary {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          
-          .summary-badge {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.25);
-            
-            .count {
-              font-size: 20px;
-              font-weight: 700;
-            }
-            
-            .label {
-              font-size: 14px;
-            }
-          }
-          
-          .quality-badge {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            color: #059669;
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            
-            .icon {
-              font-weight: 800;
-              color: #10b981;
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // 企业级分类导航
-  .category-navigation {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(15, 23, 42, 0.08);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    
-    .nav-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 64px 32px;
-      
-      .category-header {
-        text-align: center;
-        margin-bottom: 48px;
-        
-        h2 {
-          font-size: 36px;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 12px 0;
-          letter-spacing: -0.025em;
-        }
-        
-        p {
-          font-size: 18px;
-          color: #64748b;
-          margin: 0;
-          font-weight: 400;
-        }
-      }
-      
-      .category-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-        gap: 24px;
-        
-        .category-card {
-          background: rgba(255, 255, 255, 0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(15, 23, 42, 0.1);
-          border-radius: 20px;
-          padding: 32px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          position: relative;
-          overflow: hidden;
-          
-          &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-          }
-          
-          &:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-color: rgba(99, 102, 241, 0.2);
-            
-            &::before {
-              transform: translateX(0);
-            }
-            
-            .category-icon .icon-wrapper {
-              transform: scale(1.1) rotate(5deg);
-            }
-          }
-          
-          &.active {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%);
-            border-color: #6366f1;
-            box-shadow: 
-              0 10px 15px -3px rgba(99, 102, 241, 0.1),
-              0 4px 6px -2px rgba(99, 102, 241, 0.05),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            
-            &::before {
-              transform: translateX(0);
-            }
-            
-            .category-info h3 {
-              color: #6366f1;
-            }
-          }
-          
-          .category-icon {
-            flex-shrink: 0;
-            
-            .icon-wrapper {
-              width: 72px;
-              height: 72px;
-              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-              border: 1px solid rgba(15, 23, 42, 0.1);
-              border-radius: 16px;
-              
-              // 自定义图标样式
-              .custom-zone-icon {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                border-radius: 16px;
-              }
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 36px;
-              transition: all 0.3s ease;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
-          }
-          
-          .category-info {
-            flex: 1;
-            
-            h3 {
-              font-size: 20px;
-              font-weight: 600;
-              color: #1e293b;
-              margin: 0 0 8px 0;
-              letter-spacing: -0.01em;
-              transition: color 0.3s ease;
-            }
-            
-            .category-desc {
-              color: #64748b;
-              font-size: 14px;
-              line-height: 1.5;
-              margin: 0 0 12px 0;
-            }
-            
-            .category-meta {
-              display: flex;
-              align-items: center;
-              gap: 16px;
-              font-size: 12px;
-              
-              .product-count {
-                color: #6366f1;
-                font-weight: 600;
-                background: rgba(99, 102, 241, 0.1);
-                padding: 4px 8px;
-                border-radius: 6px;
-              }
-              
-              .availability {
-                color: #059669;
-                font-weight: 500;
-                position: relative;
-                
-                &::before {
-                  content: '•';
-                  color: #10b981;
-                  margin-right: 4px;
-                }
-              }
-            }
-          }
-          
-          .category-arrow {
-            color: #94a3b8;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            
-            .category-card:hover & {
-              color: #6366f1;
-              transform: translateX(4px);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  .product-filters {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 32px 32px;
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    flex-wrap: wrap;
-    position: relative;
-    z-index: 2;
-    
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .filter-label {
-        color: #e2e8f0;
-        font-weight: 500;
-        font-size: 15px;
-        white-space: nowrap;
-        letter-spacing: 0.01em;
-      }
-      
-      :deep(.el-select) {
-        .el-input__wrapper {
-          background: rgba(15, 23, 42, 0.8);
-          border: 1px solid rgba(59, 130, 246, 0.3);
-          border-radius: 10px;
-          min-width: 160px;
-          transition: all 0.3s ease;
-          
-          &:hover {
-            border-color: rgba(59, 130, 246, 0.5);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-          }
-          
-          &.is-focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-          }
-        }
-        
-        .el-input__inner {
-          color: #f8fafc;
-          font-size: 14px;
-        }
-        
-        .el-select__caret {
-          color: #64748b;
-        }
-      }
-    }
-    
-    .filter-stats {
-      margin-left: auto;
-      
-      .stats-text {
-        color: #94a3b8;
-        font-size: 15px;
-        font-weight: 500;
-        padding: 8px 16px;
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        border-radius: 8px;
-        backdrop-filter: blur(12px);
-      }
-    }
-  }
-  
-  // 产品展示区域
-  .products-showcase {
-    background: transparent;
-    padding: 48px 0 80px;
-    
-    .showcase-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 32px;
-      
-      .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-        gap: 32px;
-        
-        .enterprise-product-card {
-          background: rgba(255, 255, 255, 0.98);
-          backdrop-filter: blur(24px);
-          border: 1px solid rgba(15, 23, 42, 0.06);
-          border-radius: 28px;
-          overflow: hidden;
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          box-shadow: 
-            0 4px 6px -1px rgba(0, 0, 0, 0.05),
-            0 2px 4px -1px rgba(0, 0, 0, 0.03);
-          
-          // 添加微妙的渐变边框效果
-          &::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            padding: 2px;
-            background: linear-gradient(135deg, 
-              rgba(99, 102, 241, 0.1) 0%, 
-              rgba(139, 92, 246, 0.1) 50%, 
-              rgba(6, 182, 212, 0.1) 100%);
-            border-radius: 28px;
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            mask-composite: xor;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-          }
-          
-          // 添加顶部装饰条
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 6px;
-            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1;
-          }
-          
-          &:hover {
-            transform: translateY(-12px) scale(1.02);
-            box-shadow: 
-              0 32px 64px -12px rgba(0, 0, 0, 0.25),
-              0 0 0 1px rgba(99, 102, 241, 0.15),
-              0 0 40px rgba(99, 102, 241, 0.1);
-            border-color: rgba(99, 102, 241, 0.3);
-            
-            &::before {
-              opacity: 1;
-            }
-            
-            &::after {
-              transform: scaleX(1);
-            }
-            
-            .image-overlay {
-              opacity: 1;
-            }
-            
-            .card-image-section {
-              .image-container img {
-                transform: scale(1.08);
-              }
-            }
-            
-            .action-buttons {
-              .enterprise-btn {
-                transform: translateY(-2px);
-              }
-            }
-          }
-          
-          &.out-of-stock {
-            opacity: 0.6;
-            
-            &:hover {
-              transform: none;
-              box-shadow: none;
-              
-              .image-overlay {
-                opacity: 0;
-              }
-            }
-          }
-          
-          .card-image-section {
-            position: relative;
-            height: 260px;
-            overflow: hidden;
-            border-radius: 24px 24px 0 0;
-            
-            .image-container {
-              position: relative;
-              width: 100%;
-              height: 100%;
-              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
-              
-              // 添加微妙的图案背景
-              &::before {
-                content: '';
-                position: absolute;
-                inset: 0;
-                background: 
-                  radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-                  radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
-                opacity: 0.8;
-                z-index: 1;
-              }
-              
-              img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-                position: relative;
-                z-index: 2;
-              }
-              
-              .image-overlay {
-                position: absolute;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.6);
-                backdrop-filter: blur(8px);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                
-                .overlay-content {
-                  text-align: center;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  gap: 8px;
-                  
-                  .el-button {
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(10px);
-                    border: none;
-                    color: #6366f1;
-                    font-size: 20px;
-                    
-                    &:hover {
-                      background: white;
-                      transform: scale(1.1);
-                    }
-                  }
-                  
-                  .overlay-text {
-                    color: white;
-                    font-size: 12px;
-                    font-weight: 500;
-                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-                  }
-                }
-              }
-            }
-            
-            .status-badges {
-              position: absolute;
-              top: 16px;
-              right: 16px;
-              display: flex;
-              flex-direction: column;
-              gap: 8px;
-              z-index: 10;
-              
-              .status-badge {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(15, 23, 42, 0.1);
-                border-radius: 50px;
-                padding: 6px 12px;
-                font-size: 11px;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                
-                &.hot {
-                  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
-                  color: white;
-                  border-color: rgba(239, 68, 68, 0.3);
-                }
-                
-                &.new {
-                  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%);
-                  color: white;
-                  border-color: rgba(99, 102, 241, 0.3);
-                }
-                
-                &.sold-out {
-                  background: linear-gradient(135deg, rgba(71, 85, 105, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%);
-                  color: white;
-                  border-color: rgba(71, 85, 105, 0.3);
-                }
-                
-                &.limited {
-                  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%);
-                  color: white;
-                  border-color: rgba(245, 158, 11, 0.3);
-                }
-              }
-            }
-          }
-          
-          .card-content-section {
-            padding: 36px;
-            position: relative;
-            
-            // 添加微妙的背景纹理
-            &::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background: 
-                radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.02) 0%, transparent 50%),
-                radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.02) 0%, transparent 50%);
-              pointer-events: none;
-            }
-            
-            .content-header {
-              margin-bottom: 24px;
-              position: relative;
-              z-index: 1;
-              
-              .product-title-area {
-                margin-bottom: 16px;
-                
-                .product-title {
-                  font-size: 22px;
-                  font-weight: 800;
-                  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-                  background-clip: text;
-                  margin: 0;
-                  line-height: 1.2;
-                  letter-spacing: -0.025em;
-                }
-                
-                .title-underline {
-                  height: 3px;
-                  width: 50px;
-                  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-                  border-radius: 1px;
-                  margin-top: 8px;
-                }
-              }
-              
-              .product-rating {
-                :deep(.el-rate) {
-                  .el-rate__item {
-                    margin-right: 2px;
-                  }
-                }
-              }
-            }
-            
-            .product-summary {
-              color: #64748b;
-              font-size: 15px;
-              line-height: 1.6;
-              margin: 0 0 28px 0;
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              line-clamp: 2;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-              position: relative;
-              z-index: 1;
-            }
-            
-            .product-specifications {
-              margin-bottom: 36px;
-              position: relative;
-              z-index: 1;
-              
-              .spec-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 16px;
-                
-                .spec-card {
-                  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                  border: 1px solid rgba(229, 231, 235, 0.8);
-                  border-radius: 16px;
-                  padding: 20px;
-                  text-align: center;
-                  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                  position: relative;
-                  overflow: hidden;
-                  
-                  // 添加微妙的渐变边框
-                  &::before {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    padding: 1px;
-                    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
-                    border-radius: 16px;
-                    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-                    mask-composite: xor;
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                  }
-                  
-                  &:hover {
-                    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-                    border-color: rgba(99, 102, 241, 0.3);
-                    transform: translateY(-4px) scale(1.02);
-                    box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.2);
-                    
-                    &::before {
-                      opacity: 1;
-                    }
-                  }
-                  
-                  .spec-icon {
-                    font-size: 28px;
-                    margin-bottom: 12px;
-                    display: block;
-                    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-                  }
-                  
-                  .spec-details {
-                    .spec-label {
-                      font-size: 12px;
-                      color: #64748b;
-                      font-weight: 500;
-                      text-transform: uppercase;
-                      letter-spacing: 0.05em;
-                      margin-bottom: 2px;
-                    }
-                    
-                    .spec-value {
-                      font-size: 12px;
-                      color: #374151;
-                      font-weight: 600;
-                      
-                      &.limited-stock {
-                        color: #f59e0b;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            
-            .pricing-section {
-              margin-bottom: 24px;
-              
-              .enterprise-pricing {
-                .vip-pricing {
-                  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
-                  border: 1px solid rgba(16, 185, 129, 0.2);
-                  border-radius: 16px;
-                  padding: 20px;
-                  
-                  .pricing-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 16px;
-                    
-                    .pricing-label {
-                      font-size: 12px;
-                      color: #059669;
-                      font-weight: 600;
-                      text-transform: uppercase;
-                      letter-spacing: 0.05em;
-                    }
-                    
-                    .discount-tag {
-                      font-size: 11px;
-                      padding: 4px 8px;
-                    }
-                  }
-                  
-                  .pricing-main {
-                    .current-price {
-                      font-size: 32px;
-                      font-weight: 700;
-                      color: #059669;
-                      margin-bottom: 8px;
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                    }
-                    
-                    .price-comparison {
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                      
-                      .original-price {
-                        font-size: 14px;
-                        color: #6b7280;
-                        text-decoration: line-through;
-                      }
-                      
-                      .savings-badge {
-                        background: rgba(220, 38, 38, 0.1);
-                        border: 1px solid rgba(220, 38, 38, 0.2);
-                        color: #dc2626;
-                        padding: 4px 8px;
-                        border-radius: 6px;
-                        font-size: 11px;
-                        font-weight: 600;
-                      }
-                    }
-                  }
-                }
-                
-                .standard-pricing {
-                  .pricing-main {
-                    .current-price {
-                      font-size: 32px;
-                      font-weight: 700;
-                      color: #6366f1;
-                      margin-bottom: 8px;
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                    }
-                    
-                    .upgrade-prompt {
-                      .upgrade-link {
-                        text-decoration: none;
-                        color: #6366f1;
-                        font-size: 12px;
-                        font-weight: 500;
-                        padding: 4px 8px;
-                        background: rgba(99, 102, 241, 0.1);
-                        border: 1px solid rgba(99, 102, 241, 0.2);
-                        border-radius: 6px;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 4px;
-                        transition: all 0.2s ease;
-                        
-                        &:hover {
-                          background: rgba(99, 102, 241, 0.2);
-                          transform: translateY(-1px);
-                        }
-                        
-                        .icon {
-                          font-size: 10px;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            
-            .action-controls {
-              display: flex;
-              flex-direction: column;
-              gap: 16px;
-              
-              .quantity-selector {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                
-                .quantity-label {
-                  font-size: 14px;
-                  font-weight: 500;
-                  color: #374151;
-                  min-width: 50px;
-                }
-                
-                .quantity-input {
-                  flex: 1;
-                  max-width: 120px;
-                  
-                  :deep(.el-input-number) {
-                    width: 100%;
-                    
-                    .el-input__wrapper {
-                      border-radius: 8px;
-                    }
-                  }
-                }
-              }
-              
-              .action-buttons {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 8px;
-                
-                .enterprise-btn {
-                  border-radius: 16px;
-                  font-weight: 700;
-                  padding: 14px 24px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  gap: 10px;
-                  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                  position: relative;
-                  overflow: hidden;
-                  font-size: 15px;
-                  letter-spacing: 0.025em;
-                  
-                  // 添加光泽效果
-                  &::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: -100%;
-                    width: 100%;
-                    height: 100%;
-                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-                    transition: left 0.6s ease;
-                  }
-                  
-                  // 添加点击波纹效果
-                  &::after {
-                    content: '';
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: 0;
-                    height: 0;
-                    background: rgba(255, 255, 255, 0.3);
-                    border-radius: 50%;
-                    transform: translate(-50%, -50%);
-                    transition: width 0.3s ease, height 0.3s ease;
-                  }
-                  
-                  &.cart-btn {
-                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%);
-                    border: none;
-                    box-shadow: 0 4px 12px -4px rgba(99, 102, 241, 0.3);
-                    
-                    &:hover {
-                      background: linear-gradient(135deg, #5855eb 0%, #7c3aed 50%, #2563eb 100%);
-                      transform: translateY(-3px) scale(1.02);
-                      box-shadow: 0 12px 24px -8px rgba(99, 102, 241, 0.4);
-                      
-                      &::before {
-                        left: 100%;
-                      }
-                    }
-                    
-                    &:active {
-                      transform: translateY(-1px) scale(1.01);
-                      
-                      &::after {
-                        width: 300px;
-                        height: 300px;
-                      }
-                    }
-                  }
-                  
-                  &.buy-btn {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-                    border: none;
-                    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.3);
-                    
-                    &:hover {
-                      background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
-                      transform: translateY(-3px) scale(1.02);
-                      box-shadow: 0 12px 24px -8px rgba(16, 185, 129, 0.4);
-                      
-                      &::before {
-                        left: 100%;
-                      }
-                    }
-                    
-                    &:active {
-                      transform: translateY(-1px) scale(1.01);
-                      
-                      &::after {
-                        width: 300px;
-                        height: 300px;
-                      }
-                    }
-                  }
-                  
-                  &.detail-btn {
-                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                    border: 1px solid #e2e8f0;
-                    color: #64748b;
-                    
-                    &:hover {
-                      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-                      border-color: #c7d2fe;
-                      color: #6366f1;
-                      transform: translateY(-2px) scale(1.02);
-                      box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.2);
-                    }
-                  }
-                  
-                  &.review-btn {
-                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
-                    border: none;
-                    box-shadow: 0 4px 12px -4px rgba(245, 158, 11, 0.3);
-                    
-                    &:hover {
-                      background: linear-gradient(135deg, #d97706 0%, #b45309 50%, #92400e 100%);
-                      transform: translateY(-3px) scale(1.02);
-                      box-shadow: 0 12px 24px -8px rgba(245, 158, 11, 0.4);
-                      
-                      &::before {
-                        left: 100%;
-                      }
-                    }
-                    
-                    &:active {
-                      transform: translateY(-1px) scale(1.01);
-                      
-                      &::after {
-                        width: 300px;
-                        height: 300px;
-                      }
-                    }
-                  }
-                  
-                  &:disabled {
-                    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-                    color: #94a3b8;
-                    cursor: not-allowed;
-                    transform: none;
-                    box-shadow: none;
-                    
-                    &::before,
-                    &::after {
-                      display: none;
-                    }
-                  }
-                  
-                  &.detail-btn {
-                    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-                    border: none;
-                    color: white;
-                    
-                    &:hover {
-                      background: linear-gradient(135deg, #475569 0%, #334155 100%);
-                      transform: translateY(-2px);
-                      box-shadow: 0 8px 25px rgba(100, 116, 139, 0.25);
-                    }
-                  }
-                  
-                  &.buy-btn {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                    border: none;
-                    
-                    &:hover {
-                      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                      transform: translateY(-2px);
-                      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.25);
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // 商品详情弹窗样式
-  .product-detail-dialog {
-    :deep(.el-dialog) {
-      border-radius: 20px;
-      overflow: hidden;
-      
-      .el-dialog__header {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        color: white;
-        padding: 20px 24px;
-        margin: 0;
-        
-        .el-dialog__title {
-          font-size: 20px;
-          font-weight: 600;
-        }
-        
-        .el-dialog__headerbtn {
-          .el-dialog__close {
-            color: white;
-            font-size: 20px;
-            
-            &:hover {
-              color: rgba(255, 255, 255, 0.8);
-            }
-          }
-        }
-      }
-      
-      .el-dialog__body {
-        padding: 0;
-      }
-      
-      .el-dialog__footer {
-        background: #f8fafc;
-        border-top: 1px solid #e5e7eb;
-        padding: 20px 24px;
-        margin: 0;
-      }
-    }
-    
-    .product-detail-content {
-      .detail-header {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 40px;
-        padding: 32px;
-        background: white;
-        
-        .detail-images {
-          .main-image {
-            width: 100%;
-            height: 400px;
-            background: #f8fafc;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 16px;
-            border: 1px solid #e5e7eb;
-            
-            img {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-            }
-          }
-          
-          .image-thumbnails {
-            display: flex;
-            gap: 8px;
-            
-            .thumbnail {
-              width: 60px;
-              height: 60px;
-              border-radius: 8px;
-              overflow: hidden;
-              border: 2px solid transparent;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              
-              &.active {
-                border-color: #6366f1;
-                box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-              }
-              
-              &:hover {
-                border-color: #6366f1;
-                transform: scale(1.05);
-              }
-              
-              img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-              }
-            }
-          }
-        }
-        
-        .detail-info {
-          .product-title-section {
-            margin-bottom: 16px;
-            
-            h1 {
-              font-size: 28px;
-              font-weight: 700;
-              color: #0f172a;
-              margin: 0 0 12px 0;
-              line-height: 1.2;
-            }
-            
-            .product-badges {
-              display: flex;
-              gap: 8px;
-              flex-wrap: wrap;
-            }
-          }
-          
-          .rating-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-            
-            .review-count {
-              color: #6b7280;
-              font-size: 14px;
-            }
-          }
-          
-          .price-section-detail {
-            margin-bottom: 24px;
-            padding: 20px;
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            
-            .vip-price-detail,
-            .standard-price-detail {
-              .price-main {
-                display: flex;
-                align-items: baseline;
-                gap: 12px;
-                margin-bottom: 12px;
-                
-                .current-price {
-                  font-size: 32px;
-                  font-weight: 700;
-                  color: #059669;
-                }
-                
-                .original-price {
-                  font-size: 16px;
-                  color: #6b7280;
-                  text-decoration: line-through;
-                }
-              }
-              
-              .vip-benefits {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                
-                .savings {
-                  color: #dc2626;
-                  font-weight: 600;
-                  font-size: 14px;
-                }
-              }
-              
-              .upgrade-hint {
-                .vip-upgrade {
-                  display: inline-flex;
-                  align-items: center;
-                  gap: 6px;
-                  text-decoration: none;
-                  color: #6366f1;
-                  font-size: 14px;
-                  font-weight: 500;
-                  padding: 8px 12px;
-                  background: rgba(99, 102, 241, 0.1);
-                  border: 1px solid rgba(99, 102, 241, 0.2);
-                  border-radius: 8px;
-                  transition: all 0.2s ease;
-                  
-                  &:hover {
-                    background: rgba(99, 102, 241, 0.2);
-                    transform: translateY(-1px);
-                  }
-                }
-              }
-            }
-          }
-          
-          .stock-section {
-            .stock-info {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-bottom: 12px;
-              
-              .stock-label {
-                color: #6b7280;
-                font-weight: 500;
-              }
-              
-              .stock-value {
-                color: #059669;
-                font-weight: 600;
-                
-                &.low-stock {
-                  color: #f59e0b;
-                }
-              }
-            }
-            
-            .delivery-info {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              color: #6366f1;
-              font-size: 14px;
-              font-weight: 500;
-            }
-          }
-        }
-      }
-      
-      .detail-tabs {
-        border-top: 1px solid #e5e7eb;
-        
-        :deep(.el-tabs) {
-          .el-tabs__header {
-            margin: 0;
-            background: #f8fafc;
-            
-            .el-tabs__nav-wrap {
-              padding: 0 32px;
-              
-              .el-tabs__nav {
-                .el-tabs__item {
-                  height: 50px;
-                  line-height: 50px;
-                  font-weight: 500;
-                  color: #6b7280;
-                  
-                  &.is-active {
-                    color: #6366f1;
-                    font-weight: 600;
-                  }
-                }
-              }
-            }
-            
-            .el-tabs__active-bar {
-              background-color: #6366f1;
-              height: 3px;
-            }
-          }
-          
-          .el-tabs__content {
-            padding: 32px;
-            
-            .el-tab-pane {
-              .detail-section {
-                margin-bottom: 32px;
-                
-                h3 {
-                  font-size: 18px;
-                  font-weight: 600;
-                  color: #0f172a;
-                  margin: 0 0 16px 0;
-                  padding-bottom: 8px;
-                  border-bottom: 2px solid #e5e7eb;
-                }
-                
-                p {
-                  color: #4b5563;
-                  line-height: 1.6;
-                  margin: 0;
-                }
-                
-                .specs-table {
-                  .spec-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 12px 0;
-                    border-bottom: 1px solid #f3f4f6;
-                    
-                    &:last-child {
-                      border-bottom: none;
-                    }
-                    
-                    .spec-key {
-                      color: #6b7280;
-                      font-weight: 500;
-                    }
-                    
-                    .spec-value {
-                      color: #0f172a;
-                      font-weight: 600;
-                    }
-                  }
-                }
-                
-                .advantages-list {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 20px;
-                  
-                  .advantage-item {
-                    display: flex;
-                    gap: 16px;
-                    align-items: flex-start;
-                    padding: 20px;
-                    background: #f8fafc;
-                    border-radius: 12px;
-                    border: 1px solid #e5e7eb;
-                    
-                    .el-icon {
-                      color: #6366f1;
-                      font-size: 24px;
-                      flex-shrink: 0;
-                      margin-top: 2px;
-                    }
-                    
-                    h4 {
-                      font-size: 16px;
-                      font-weight: 600;
-                      color: #0f172a;
-                      margin: 0 0 6px 0;
-                    }
-                    
-                    p {
-                      margin: 0;
-                      font-size: 14px;
-                    }
-                  }
-                }
-              }
-              
-              .reviews-summary {
-                margin-bottom: 32px;
-                padding: 24px;
-                background: #f8fafc;
-                border-radius: 12px;
-                border: 1px solid #e5e7eb;
-                
-                .rating-overview {
-                  display: flex;
-                  gap: 40px;
-                  align-items: center;
-                  
-                  .rating-score {
-                    text-align: center;
-                    
-                    .score {
-                      font-size: 48px;
-                      font-weight: 700;
-                      color: #f59e0b;
-                      display: block;
-                      margin-bottom: 8px;
-                    }
-                  }
-                  
-                  .rating-stats {
-                    flex: 1;
-                    
-                    .stat-item {
-                      display: flex;
-                      align-items: center;
-                      gap: 12px;
-                      margin-bottom: 6px;
-                      
-                      .stars {
-                        min-width: 32px;
-                        font-size: 12px;
-                        color: #6b7280;
-                      }
-                      
-                      .progress-bar {
-                        flex: 1;
-                        height: 6px;
-                        background: #e5e7eb;
-                        border-radius: 3px;
-                        overflow: hidden;
-                        
-                        .progress {
-                          height: 100%;
-                          background: #f59e0b;
-                          transition: width 0.3s ease;
-                        }
-                      }
-                      
-                      .count {
-                        min-width: 24px;
-                        font-size: 12px;
-                        color: #6b7280;
-                        text-align: right;
-                      }
-                    }
-                  }
-                }
-              }
-              
-              .reviews-list {
-                .review-item {
-                  padding: 20px 0;
-                  border-bottom: 1px solid #f3f4f6;
-                  
-                  &:last-child {
-                    border-bottom: none;
-                  }
-                  
-                  .reviewer-info {
-                    display: flex;
-                    gap: 12px;
-                    margin-bottom: 12px;
-                    
-                    .reviewer-details {
-                      flex: 1;
-                      
-                      h4 {
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #0f172a;
-                        margin: 0 0 4px 0;
-                      }
-                      
-                      .review-meta {
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
-                        
-                        .review-time {
-                          color: #6b7280;
-                          font-size: 12px;
-                        }
-                      }
-                    }
-                  }
-                  
-                  .review-content {
-                    margin-left: 52px;
-                    
-                    p {
-                      margin: 0 0 12px 0;
-                      font-size: 14px;
-                      line-height: 1.5;
-                    }
-                    
-                    .review-tags {
-                      display: flex;
-                      gap: 6px;
-                      flex-wrap: wrap;
-                    }
-                  }
-                }
-              }
-              
-              .purchase-notice {
-                .notice-section {
-                  margin-bottom: 24px;
-                  
-                  h3 {
-                    font-size: 16px;
-                    color: #0f172a;
-                    margin-bottom: 12px;
-                  }
-                  
-                  ul {
-                    list-style: none;
-                    padding: 0;
-                    margin: 0;
-                    
-                    li {
-                      padding: 8px 0;
-                      color: #4b5563;
-                      position: relative;
-                      padding-left: 20px;
-                      
-                      &::before {
-                        content: '•';
-                        color: #6366f1;
-                        font-weight: bold;
-                        position: absolute;
-                        left: 0;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    .detail-footer-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      
-      .quantity-section {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        
-        .quantity-label {
-          font-weight: 500;
-          color: #374151;
-        }
-      }
-      
-      .action-buttons {
-        display: flex;
-        gap: 12px;
-        
-        .el-button {
-          padding: 12px 24px;
-          font-weight: 600;
-          border-radius: 8px;
-          
-          &.el-button--success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border: none;
-            
-            &:hover {
-              background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            }
-          }
-          
-          &.el-button--primary {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            border: none;
-            
-            &:hover {
-              background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  .old-products-grid {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 32px 64px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 32px;
-    position: relative;
-    z-index: 2;
-    
-    .product-card {
-      background: linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
-      backdrop-filter: blur(24px);
-      border-radius: 24px;
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      
-      &:hover {
-        transform: translateY(-12px) scale(1.02);
-        box-shadow: 
-          0 32px 64px rgba(0, 0, 0, 0.4),
-          0 0 0 1px rgba(59, 130, 246, 0.3),
-          inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        border-color: rgba(59, 130, 246, 0.4);
-        
-        &::before {
-          opacity: 1;
-        }
-        
-        .product-image img {
-          transform: scale(1.05);
-        }
-      }
-      
-      &.out-of-stock {
-        opacity: 0.5;
-        background: linear-gradient(145deg, rgba(15, 23, 42, 0.7) 0%, rgba(30, 41, 59, 0.6) 100%);
-        
-        &:hover {
-          transform: none;
-          box-shadow: none;
-          border-color: rgba(59, 130, 246, 0.2);
-          
-          &::before {
-            opacity: 0;
-          }
-          
-          .product-image img {
-            transform: none;
-          }
-        }
-      }
-      
-      .product-image {
-        position: relative;
-        height: 240px;
-        background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        
-        &::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-        
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: transform 0.4s ease;
-          position: relative;
-          z-index: 1;
-        }
-        
-        .product-badges {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          z-index: 2;
-          
-          .badge {
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 11px;
-            font-weight: 600;
-            text-align: center;
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            
-            &.hot {
-              background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.9) 100%);
-              color: white;
-              border-color: rgba(239, 68, 68, 0.3);
-            }
-            
-            &.new {
-              background: linear-gradient(135deg, rgba(59, 130, 246, 0.9) 0%, rgba(37, 99, 235, 0.9) 100%);
-              color: white;
-              border-color: rgba(59, 130, 246, 0.3);
-            }
-            
-            &.sold-out {
-              background: linear-gradient(135deg, rgba(71, 85, 105, 0.9) 0%, rgba(51, 65, 85, 0.9) 100%);
-              color: #e2e8f0;
-              border-color: rgba(71, 85, 105, 0.3);
-            }
-            
-            &.low-stock {
-              background: linear-gradient(135deg, rgba(245, 158, 11, 0.9) 0%, rgba(217, 119, 6, 0.9) 100%);
-              color: white;
-              border-color: rgba(245, 158, 11, 0.3);
-            }
-          }
-        }
-      }
-      
-      .product-content {
-        padding: 32px;
-        
-        .product-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 16px;
-          
-          .product-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #f8fafc;
-            margin: 0;
-            flex: 1;
-            margin-right: 20px;
-            line-height: 1.3;
-            letter-spacing: -0.01em;
-          }
-        }
-        
-        .product-description {
-          color: #94a3b8;
-          font-size: 15px;
-          line-height: 1.6;
-          margin: 0 0 24px 0;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          letter-spacing: 0.01em;
-        }
-        
-        .product-specs {
-          margin-bottom: 24px;
-          background: rgba(15, 23, 42, 0.5);
-          border-radius: 12px;
-          padding: 16px;
-          border: 1px solid rgba(59, 130, 246, 0.1);
-          
-          .spec-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 14px;
-            
-            &:last-child {
-              margin-bottom: 0;
-            }
-            
-            .spec-label {
-              color: #64748b;
-              font-weight: 500;
-            }
-            
-            .spec-value {
-              color: #e2e8f0;
-              font-weight: 600;
-              
-              &.low-stock {
-                color: #f59e0b;
-                background: rgba(245, 158, 11, 0.1);
-                padding: 2px 8px;
-                border-radius: 6px;
-                font-size: 12px;
-              }
-            }
-          }
-        }
-        
-        .product-footer {
-          .price-section {
-            margin-bottom: 16px;
-            
-            .vip-pricing {
-              background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-              border: 1px solid rgba(34, 197, 94, 0.2);
-              border-radius: 16px;
-              padding: 16px;
-              
-              .price-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 12px;
-                
-                .original-price-small {
-                  font-size: 14px;
-                  color: #64748b;
-                  text-decoration: line-through;
-                  font-weight: 500;
-                }
-              }
-              
-              .vip-price-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                
-                .current-price {
-                  font-size: 28px;
-                  font-weight: 700;
-                  color: #22c55e;
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                  letter-spacing: -0.02em;
-                }
-                
-                .savings {
-                  font-size: 12px;
-                  color: #dc2626;
-                  font-weight: 600;
-                  background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%);
-                  border: 1px solid rgba(220, 38, 38, 0.2);
-                  padding: 4px 10px;
-                  border-radius: 12px;
-                  backdrop-filter: blur(8px);
-                }
-              }
-            }
-            
-            .normal-pricing {
-              .current-price {
-                font-size: 28px;
-                font-weight: 700;
-                color: #22c55e;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                letter-spacing: -0.02em;
-                margin-bottom: 8px;
-                display: block;
-              }
-              
-              .vip-upgrade-hint {
-                .upgrade-link {
-                  font-size: 13px;
-                  color: #60a5fa;
-                  text-decoration: none;
-                  padding: 4px 8px;
-                  background: rgba(59, 130, 246, 0.1);
-                  border: 1px solid rgba(59, 130, 246, 0.2);
-                  border-radius: 8px;
-                  font-weight: 500;
-                  transition: all 0.2s ease;
-                  display: inline-block;
-                  
-                  &:hover {
-                    background: rgba(59, 130, 246, 0.2);
-                    border-color: rgba(59, 130, 246, 0.3);
-                    transform: translateY(-1px);
-                  }
-                }
-              }
-            }
-            
-            .original-price {
-              font-size: 16px;
-              color: rgba(255, 255, 255, 0.6);
-              text-decoration: line-through;
-              margin-left: 8px;
-            }
-          }
-          
-          .purchase-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-            
-            .quantity-input {
-              width: 80px;
-            }
-            
-            .add-to-cart-btn,
-            .buy-now-btn {
-              flex: 1;
-              min-width: 120px;
-            }
-          }
-        }
-      }
-    }
-    
-    .empty-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 80px 20px;
-      color: rgba(255, 255, 255, 0.8);
-      
-      .empty-icon {
-        font-size: 64px;
-        margin-bottom: 16px;
-      }
-      
-      h3 {
-        color: white;
-        margin: 0 0 8px 0;
-      }
-      
-      p {
-        margin: 0;
-        color: rgba(255, 255, 255, 0.7);
-      }
-    }
-  }
-  
-  .pagination-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 24px 48px;
-    text-align: center;
-  }
-  
-  .cart-sidebar {
-    position: fixed;
-    right: -400px;
-    top: 0;
+  &.orb-2 {
     width: 400px;
-    height: 100vh;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    z-index: 1000;
-    transition: right 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    
-    &.active {
-      right: 0;
-    }
-    
-    .cart-header {
-      padding: 24px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      
-      h3 {
-        margin: 0;
-        color: #333;
-      }
-    }
-    
-    .cart-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      
-      .cart-empty {
-        text-align: center;
-        padding: 60px 20px;
-        color: #999;
-        
-        .empty-cart-icon {
-          font-size: 48px;
-          margin-bottom: 16px;
-        }
-      }
-      
-      .cart-items {
-        .cart-item {
-          display: flex;
-          gap: 12px;
-          padding: 16px 0;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-          
-          .cart-item-image {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #f5f5f5;
-          }
-          
-          .cart-item-info {
-            flex: 1;
-            
-            .cart-item-name {
-              font-size: 14px;
-              font-weight: 600;
-              margin: 0 0 8px 0;
-              color: #333;
-            }
-            
-            .cart-item-controls {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              
-              .cart-item-price {
-                font-weight: 600;
-                color: #00b894;
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    .cart-footer {
-      padding: 24px;
-      border-top: 1px solid rgba(0, 0, 0, 0.1);
-      
-      .cart-coupon-section {
-        margin-bottom: 16px;
-        padding: 12px;
-        background: #f8fafc;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        
-        .coupon-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-          
-          .coupon-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #374151;
-          }
-          
-          .remove-coupon-btn {
-            color: #6b7280;
-            font-size: 12px;
-            
-            &:hover {
-              color: #ef4444;
-            }
-          }
-        }
-        
-        .selected-coupon-card {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 12px;
-          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-          border: 1px solid #0ea5e9;
-          border-radius: 6px;
-          
-          .coupon-info {
-            .coupon-name {
-              font-size: 13px;
-              font-weight: 600;
-              color: #1e293b;
-              margin-bottom: 2px;
-            }
-            
-            .coupon-code {
-              font-size: 11px;
-              color: #64748b;
-              font-family: monospace;
-            }
-          }
-          
-          .coupon-discount {
-            font-size: 14px;
-            font-weight: 700;
-            color: #10b981;
-          }
-        }
-        
-        .coupon-input-area {
-          .coupon-message {
-            margin-top: 8px;
-            padding: 6px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            
-            &.success {
-              background: #f0f9ff;
-              color: #0369a1;
-              border: 1px solid #bae6fd;
-            }
-            
-            &.error {
-              background: #fef2f2;
-              color: #dc2626;
-              border: 1px solid #fecaca;
-            }
-          }
-        }
-      }
-      
-      .cart-total {
-        margin-bottom: 16px;
-        
-        .total-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 6px;
-          font-size: 14px;
-          
-          &.discount-row {
-            color: #10b981;
-            
-            .discount-amount {
-              font-weight: 600;
-            }
-          }
-          
-          &.final-total {
-            font-size: 16px;
-            font-weight: 700;
-            padding-top: 8px;
-            border-top: 1px solid #e5e7eb;
-            margin-top: 8px;
-            
-            .final-amount {
-              color: #ef4444;
-            }
-          }
-          
-          .total-label {
-            color: #6b7280;
-          }
-          
-          .total-amount {
-            color: #1f2937;
-            font-weight: 600;
-          }
-        }
-      }
-      
-      .checkout-btn {
-        width: 100%;
-        height: 44px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-      }
-    }
-  }
-  
-  .cart-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-  }
-  
-  .floating-cart {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1001;
-  }
-  
-  .purchase-confirmation {
-    .product-summary {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      
-      .summary-image {
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 8px;
-        background: #e9ecef;
-      }
-      
-      .summary-info {
-        flex: 1;
-        
-        h4 {
-          margin: 0 0 8px 0;
-          color: #333;
-        }
-        
-        .vip-summary-pricing {
-          .summary-original {
-            margin: 4px 0;
-            color: #999;
-            font-size: 14px;
-            text-decoration: line-through;
-          }
-          
-          .summary-discount {
-            margin: 4px 0;
-            color: #666;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-          }
-          
-          .summary-total.vip-total {
-            font-weight: 700;
-            color: #00b894;
-            font-size: 18px;
-            margin: 8px 0 4px 0;
-          }
-        }
-        
-        p {
-          margin: 4px 0;
-          color: #666;
-          
-          &.summary-total {
-            font-weight: 700;
-            color: #00b894;
-            font-size: 16px;
-          }
-        }
-        
-        .vip-promotion {
-          margin-top: 8px;
-          padding: 8px;
-          background: #e8f4fd;
-          border-radius: 4px;
-          text-align: center;
-        }
-        
-        // 卡密类型选择样式
-        .card-type-selection {
-          margin: 20px 0;
-          
-          h4 {
-            margin: 0 0 16px 0;
-            color: #333;
-            font-size: 14px;
-          }
-          
-          .card-type-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-            
-            .card-type-option {
-              border: 2px solid #e4e7ed;
-              border-radius: 8px;
-              padding: 12px;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              background: #fff;
-              
-              &:hover {
-                border-color: #409eff;
-                box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
-              }
-              
-              &.active {
-                border-color: #409eff;
-                background: #ecf5ff;
-                box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
-              }
-              
-              .card-type-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 8px;
-                
-                .card-type-name {
-                  font-weight: 500;
-                  color: #303133;
-                }
-              }
-              
-              .card-type-desc {
-                color: #909399;
-                font-size: 12px;
-                margin: 0 0 8px 0;
-                line-height: 1.4;
-              }
-              
-              .card-type-stock {
-                .stock-label {
-                  color: #67c23a;
-                  font-size: 12px;
-                  font-weight: 500;
-                }
-              }
-            }
-          }
-          
-          .no-stock-warning {
-            margin-top: 12px;
-          }
-        }
-        
-        // 优惠券选择样式
-        .coupon-selection {
-          margin: 20px 0;
-          
-          h4 {
-            margin: 0 0 16px 0;
-            color: #333;
-            font-size: 14px;
-          }
-          
-          .selected-coupon-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            background: #f0f9ff;
-            border: 2px solid #0ea5e9;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            
-            .coupon-info {
-              flex: 1;
-              
-              .coupon-name {
-                font-weight: 600;
-                color: #0c4a6e;
-                margin-bottom: 4px;
-              }
-              
-              .coupon-code {
-                font-size: 12px;
-                color: #0369a1;
-                font-family: monospace;
-                margin-bottom: 2px;
-              }
-              
-              .coupon-desc {
-                font-size: 12px;
-                color: #0284c7;
-              }
-            }
-            
-            .coupon-discount {
-              font-weight: 700;
-              color: #dc2626;
-              font-size: 16px;
-              margin-right: 8px;
-            }
-            
-            .remove-coupon-btn {
-              color: #6b7280;
-              
-              &:hover {
-                color: #dc2626;
-              }
-            }
-          }
-          
-          .coupon-input-section {
-            .coupon-input-group {
-              margin-bottom: 8px;
-            }
-            
-            .coupon-message {
-              font-size: 12px;
-              margin-top: 8px;
-              padding: 8px;
-              border-radius: 4px;
-              
-              &.success {
-                background: #d1fae5;
-                color: #065f46;
-                border: 1px solid #a7f3d0;
-              }
-              
-              &.error {
-                background: #fee2e2;
-                color: #991b1b;
-                border: 1px solid #fecaca;
-              }
-            }
-            
-            .available-coupons {
-              margin-top: 16px;
-              
-              .coupons-title {
-                font-size: 12px;
-                color: #6b7280;
-                margin-bottom: 8px;
-              }
-              
-              .coupons-list {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                
-                .coupon-card-modern {
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  padding: 16px;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  border-radius: 12px;
-                  cursor: pointer;
-                  transition: all 0.3s ease;
-                  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-                  margin-bottom: 12px;
-                  position: relative;
-                  overflow: hidden;
-                  
-                  &::before {
-                    content: '';
-                    position: absolute;
-                    top: -50%;
-                    right: -50%;
-                    width: 200%;
-                    height: 200%;
-                    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-                    transition: all 0.3s ease;
-                  }
-                  
-                  &:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-                    
-                    &::before {
-                      top: -30%;
-                      right: -30%;
-                    }
-                  }
-                  
-                  &.user-specific {
-                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
-                    
-                    &:hover {
-                      box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
-                    }
-                  }
-                  
-                  .coupon-left {
-                    display: flex;
-                    align-items: center;
-                    flex: 1;
-                    gap: 12px;
-                    
-                    .coupon-icon {
-                      width: 40px;
-                      height: 40px;
-                      background: rgba(255, 255, 255, 0.2);
-                      border-radius: 50%;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      color: white;
-                      font-size: 20px;
-                    }
-                    
-                    .coupon-content {
-                      .coupon-name-modern {
-                        font-weight: 600;
-                        color: white;
-                        font-size: 15px;
-                        margin-bottom: 4px;
-                      }
-                      
-                      .coupon-desc-modern {
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.9);
-                      }
-                    }
-                  }
-                  
-                  .coupon-right {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-end;
-                    gap: 6px;
-                    
-                    .coupon-discount-badge {
-                      padding: 6px 12px;
-                      border-radius: 20px;
-                      background: rgba(255, 255, 255, 0.95);
-                      font-weight: 700;
-                      font-size: 16px;
-                      color: #667eea;
-                      white-space: nowrap;
-                      
-                      &.type-percentage {
-                        color: #667eea;
-                      }
-                      
-                      &.type-fixed {
-                        color: #f5576c;
-                      }
-                      
-                      &.type-threshold {
-                        color: #f093fb;
-                      }
-                    }
-                    
-                    .coupon-code-modern {
-                      font-size: 11px;
-                      color: rgba(255, 255, 255, 0.8);
-                      font-family: monospace;
-                      background: rgba(255, 255, 255, 0.15);
-                      padding: 4px 8px;
-                      border-radius: 4px;
-                    }
-                    
-                    .coupon-action-modern {
-                      .el-button {
-                        background: white;
-                        border: none;
-                        color: #667eea;
-                        
-                        &:hover {
-                          background: rgba(255, 255, 255, 0.9);
-                          color: #764ba2;
-                        }
-                      }
-                    }
-                  }
-                }
-                
-                .coupon-card {
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  padding: 8px 12px;
-                  background: #f9fafb;
-                  border: 1px solid #e5e7eb;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                  
-                  &:hover {
-                    background: #f3f4f6;
-                    border-color: #d1d5db;
-                  }
-                  
-                  .coupon-info {
-                    flex: 1;
-                    
-                    .coupon-name {
-                      font-weight: 500;
-                      color: #374151;
-                      font-size: 13px;
-                      margin-bottom: 2px;
-                    }
-                    
-                    .coupon-desc {
-                      font-size: 11px;
-                      color: #6b7280;
-                      margin-bottom: 2px;
-                    }
-                    
-                    .coupon-code {
-                      font-size: 10px;
-                      color: #9ca3af;
-                      font-family: monospace;
-                    }
-                  }
-                  
-                  .coupon-action {
-                    .el-button {
-                      height: 24px;
-                      padding: 0 8px;
-                      font-size: 11px;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        
-        // 数量选择样式
-        .quantity-selection {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 16px 0;
-          
-          label {
-            font-size: 14px;
-            color: #606266;
-            font-weight: 500;
-          }
-          
-          .quantity-hint {
-            font-size: 12px;
-            color: #909399;
-          }
-        }
-        
-        // 价格显示样式
-        .summary-coupon-discount {
-          margin: 4px 0;
-          color: #059669;
-          font-size: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        
-        .summary-subtotal {
-          margin: 4px 0;
-          color: #666;
-          font-size: 14px;
-        }
-      }
-    }
-    
-    .payment-method-selection {
-      h4 {
-        margin: 0 0 16px 0;
-        color: #333;
-      }
-      
-      .insufficient-balance {
-        margin-top: 16px;
-      }
-    }
+    height: 400px;
+    background: linear-gradient(135deg, rgba($success, 0.15), rgba($primary, 0.1));
+    bottom: -100px;
+    left: -100px;
+    animation: pulse 12s ease-in-out infinite;
+    animation-delay: 3s;
   }
 }
 
-// 响应式设计
-@media (max-width: 1200px) {
-  .card-purchase {
-    .enterprise-navbar {
-      .nav-container {
-        padding: 0 20px;
-        
-        .nav-search {
-          max-width: 400px;
-        }
-      }
-    }
-    
-    .hero-content {
-      padding: 60px 20px;
-      
-      .hero-title {
-        font-size: 48px;
-      }
-    }
-    
-    .category-navigation {
-      .nav-container {
-        padding: 48px 20px;
-        
-        .category-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    }
-    
-    .products-showcase {
-      .showcase-container {
-        padding: 0 20px;
-        
-        .products-grid {
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-        }
-      }
-    }
-  }
+// 导航
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba($border, 0.8);
 }
 
-@media (max-width: 768px) {
-  .card-purchase {
-    .enterprise-navbar {
-      .nav-container {
-        flex-direction: column;
-        height: auto;
-        padding: 16px;
-        gap: 16px;
-        
-        .nav-search {
-          width: 100%;
-          max-width: none;
-        }
-        
-        .nav-actions .user-badge {
-          justify-content: center;
-        }
-      }
-    }
-    
-    .page-hero {
-      min-height: 240px;
-      
-      .hero-content {
-        padding: 40px 16px;
-        
-        .hero-text {
-          text-align: center;
-          
-          .hero-title {
-            font-size: 36px;
-          }
-          
-          .hero-subtitle {
-            font-size: 16px;
-          }
-          
-          .hero-stats {
-            flex-direction: column;
-            gap: 24px;
-            
-            .stat-item {
-              .stat-number {
-                font-size: 24px;
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    .category-navigation {
-      .nav-container {
-        padding: 32px 16px;
-        
-        .category-header {
-          h2 {
-            font-size: 28px;
-          }
-          
-          p {
-            font-size: 16px;
-          }
-        }
-        
-        .category-grid {
-          .category-card {
-            flex-direction: column;
-            text-align: center;
-            padding: 24px;
-            
-            .category-icon {
-              margin-bottom: 16px;
-            }
-            
-            .category-arrow {
-              display: none;
-            }
-          }
-        }
-      }
-    }
-    
-    .enterprise-filters {
-      .filters-container {
-        flex-direction: column;
-        gap: 20px;
-        padding: 20px 16px;
-        
-        .filters-left {
-          flex-direction: column;
-          gap: 16px;
-          width: 100%;
-          
-          .filter-section {
-            width: 100%;
-            
-            :deep(.el-select) {
-              width: 100%;
-            }
-          }
-        }
-        
-        .filters-right {
-          .results-summary {
-            flex-direction: column;
-            gap: 12px;
-            
-            .summary-badge {
-              justify-content: center;
-            }
-          }
-        }
-      }
-    }
-    
-    .products-showcase {
-      padding: 32px 0 60px;
-      
-      .showcase-container {
-        padding: 0 16px;
-        
-        .products-grid {
-          grid-template-columns: 1fr;
-          gap: 24px;
-          
-          .enterprise-product-card {
-            .card-content-section {
-              padding: 24px;
-              
-              .product-specifications {
-                .spec-grid {
-                  grid-template-columns: 1fr;
-                  
-                  .spec-card {
-                    display: flex;
-                    align-items: center;
-                    text-align: left;
-                    gap: 12px;
-                    padding: 16px;
-                    
-                    .spec-icon {
-                      font-size: 24px;
-                      margin-bottom: 0;
-                    }
-                    
-                    .spec-details {
-                      flex: 1;
-                    }
-                  }
-                }
-              }
-              
-              .action-controls {
-                .quantity-selector {
-                  justify-content: space-between;
-                }
-                
-                .action-buttons {
-                  grid-template-columns: 1fr;
-                  gap: 8px;
-                  
-                  .enterprise-btn {
-                    padding: 16px 24px;
-                    font-size: 16px;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    .cart-sidebar {
-      width: 100vw;
-      right: -100vw;
-    }
-    
-    .floating-cart {
-      bottom: 20px;
-      right: 20px;
-    }
-    
-    // 详情弹窗响应式
-    .product-detail-dialog {
-      :deep(.el-dialog) {
-        width: 95% !important;
-        margin: 20px auto;
-        max-height: 90vh;
-        overflow-y: auto;
-      }
-      
-      .detail-header {
-        grid-template-columns: 1fr !important;
-        gap: 24px !important;
-        padding: 20px !important;
-        
-        .detail-images {
-          .main-image {
-            height: 300px;
-          }
-        }
-      }
-      
-      .detail-tabs {
-        :deep(.el-tabs) {
-          .el-tabs__header {
-            .el-tabs__nav-wrap {
-              padding: 0 16px;
-            }
-          }
-          
-          .el-tabs__content {
-            padding: 20px 16px;
-          }
-        }
-      }
-      
-      .detail-footer-actions {
-        flex-direction: column;
-        gap: 16px;
-        align-items: stretch;
-        
-        .quantity-section {
-          justify-content: center;
-        }
-        
-        .action-buttons {
-          .el-button {
-            flex: 1;
-          }
-        }
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .card-purchase {
-    .hero-content {
-      padding: 32px 12px;
-      
-      .hero-text {
-        .hero-title {
-          font-size: 28px;
-        }
-        
-        .hero-subtitle {
-          font-size: 14px;
-        }
-      }
-    }
-    
-    .enterprise-filters {
-      .filters-container {
-        padding: 16px 12px;
-      }
-    }
-    
-    .products-showcase {
-      .showcase-container {
-        padding: 0 12px;
-      }
-    }
-    
-    .pagination-container {
-      padding: 0 12px 32px;
-      
-      :deep(.el-pagination) {
-        justify-content: center;
-        
-        .el-pagination__sizes {
-          display: none;
-        }
-        
-        .el-pagination__jump {
-          display: none;
-        }
-      }
-    }
-    
-    // 小屏幕详情弹窗优化
-    .product-detail-dialog {
-      :deep(.el-dialog) {
-        width: 100% !important;
-        margin: 0 !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        border-radius: 0 !important;
-      }
-      
-      .detail-header {
-        .detail-info {
-          .product-title-section h1 {
-            font-size: 22px;
-          }
-          
-          .price-section-detail {
-            padding: 16px;
-            
-            .vip-price-detail,
-            .standard-price-detail {
-              .price-main .current-price {
-                font-size: 28px;
-              }
-            }
-          }
-        }
-      }
-      
-      .detail-tabs {
-        :deep(.el-tabs) {
-          .el-tabs__content {
-            padding: 16px 12px;
-            
-            .reviews-summary {
-              padding: 16px;
-              
-              .rating-overview {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-// 评价弹窗样式
-.review-dialog {
-  :deep(.el-dialog__body) {
-    padding: 30px;
-  }
-
-  .review-form {
-    .review-product-info {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 20px;
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-      border-radius: 12px;
-      margin-bottom: 24px;
-      border: 1px solid #e2e8f0;
-
-      .review-product-image {
-        width: 80px;
-        height: 80px;
-        border-radius: 8px;
-        object-fit: cover;
-        border: 2px solid #e2e8f0;
-      }
-
-      .review-product-details {
-        flex: 1;
-
-        h3 {
-          margin: 0 0 8px 0;
-          color: #1e293b;
-          font-size: 18px;
-          font-weight: 600;
-        }
-
-        .product-price {
-          color: #dc2626;
-          font-size: 20px;
-          font-weight: 700;
-          margin: 0;
-        }
-      }
-    }
-
-    .review-rating {
-      margin-bottom: 24px;
-      
-      label {
-        display: block;
-        margin-bottom: 12px;
-        color: #374151;
-        font-weight: 600;
-        font-size: 16px;
-      }
-
-      :deep(.el-rate) {
-        .el-rate__text {
-          color: #6b7280;
-          font-weight: 500;
-        }
-      }
-    }
-
-    .review-content {
-      margin-bottom: 24px;
-
-      label {
-        display: block;
-        margin-bottom: 12px;
-        color: #374151;
-        font-weight: 600;
-        font-size: 16px;
-      }
-
-      :deep(.el-textarea__inner) {
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        padding: 12px;
-        font-size: 15px;
-        line-height: 1.6;
-        resize: vertical;
-        min-height: 120px;
-
-        &:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-      }
-    }
-
-    .reviewer-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      background: #f8fafc;
-      border-radius: 8px;
-      border-left: 4px solid #3b82f6;
-
-      .reviewer-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-      }
-
-      .reviewer-name {
-        color: #374151;
-        font-weight: 500;
-        font-size: 15px;
-      }
-    }
-  }
-
-  :deep(.el-dialog__footer) {
-    padding: 20px 30px 30px;
-    text-align: right;
-
-    .el-button {
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-weight: 500;
-      
-      &.el-button--primary {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        border: none;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        
-        &:hover {
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-          transform: translateY(-1px);
-        }
-      }
-    }
-  }
-}
-
-/* 评价按钮样式 */
-.review-btn {
-  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-  border: none !important;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
-  
-  &:hover {
-    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4) !important;
-    transform: translateY(-1px) !important;
-  }
-}
-
-/* 评价列表样式优化 */
-.no-reviews {
-  text-align: center;
-  padding: 40px 20px;
-  color: #6b7280;
-  
-  p {
-    margin-bottom: 16px;
-    font-size: 16px;
-  }
-}
-
-.review-images {
+.nav-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 12px 24px;
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   
-  img {
-    width: 60px;
-    height: 60px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 1px solid #e5e7eb;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    
-    &:hover {
-      transform: scale(1.1);
-    }
-  }
-  
-  // 添加全局动画关键帧
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  @keyframes slideInRight {
-    from {
-      opacity: 0;
-      transform: translateX(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
-  }
-  
-  @keyframes shimmer {
-    0% {
-      left: -100%;
-    }
-    100% {
-      left: 100%;
-    }
-  }
-  
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-      transform: translateY(0);
-    }
-    40% {
-      transform: translateY(-10px);
-    }
-    60% {
-      transform: translateY(-5px);
-    }
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  // 添加页面加载动画
-  .card-purchase {
-    animation: fadeInUp 0.8s ease-out;
-  }
-  
-  // 产品卡片进入动画
-  .enterprise-product-card {
-    animation: fadeInUp 0.6s ease-out;
-    animation-fill-mode: both;
-    
-    &:nth-child(1) { animation-delay: 0.1s; }
-    &:nth-child(2) { animation-delay: 0.2s; }
-    &:nth-child(3) { animation-delay: 0.3s; }
-    &:nth-child(4) { animation-delay: 0.4s; }
-    &:nth-child(5) { animation-delay: 0.5s; }
-    &:nth-child(6) { animation-delay: 0.6s; }
-  }
-  
-  // 按钮点击反馈动画
-  .enterprise-btn {
-    &:active {
-      animation: bounce 0.6s ease;
-    }
-  }
-  
-  // 加载状态动画
-  .loading-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(4px);
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, $primary, #8B5CF6);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    color: white;
     
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #e2e8f0;
-      border-top: 3px solid #6366f1;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
+    svg { width: 20px; height: 20px; }
   }
   
-  // 成功购买动画
-  .purchase-success {
-    animation: bounce 0.8s ease;
-  }
-  
-  // 库存不足警告动画
-  .limited-stock {
-    animation: pulse 2s infinite;
-    color: #ef4444 !important;
-  }
-  
-  // 悬停时的微妙动画
-  .enterprise-product-card:hover {
-    .spec-card {
-      animation: slideInRight 0.3s ease-out;
-    }
-  }
-}
-// 批量购买对话框样式
-:deep(.batch-purchase-dialog) {
-  .el-dialog {
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  
-  .el-dialog__header {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    padding: 20px 24px;
-    border-bottom: 1px solid #e2e8f0;
+  .brand-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: $text;
     
-    .el-dialog__title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1e293b;
+    .brand-suffix {
+      color: $primary;
+      font-weight: 600;
     }
-  }
-  
-  .el-dialog__body {
-    padding: 24px;
-  }
-  
-  .el-dialog__footer {
-    padding: 20px 24px;
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
   }
 }
 
-.batch-purchase-content {
-  .purchase-summary {
-    margin-bottom: 24px;
+.nav-search {
+  flex: 1;
+  max-width: 400px;
+  
+  :deep(.el-input__wrapper) {
+    border-radius: 10px;
+    background: rgba($bg, 0.8);
+  }
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .user-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: $text;
+  }
+}
+
+.cart-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($primary, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: $primary;
+  
+  &:hover {
+    background: rgba($primary, 0.15);
+  }
+}
+
+// 主内容
+.main-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+// 分类
+.category-section {
+  margin-bottom: 24px;
+}
+
+.category-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0;
+  
+  &::-webkit-scrollbar { height: 4px; }
+  &::-webkit-scrollbar-thumb { background: $border; border-radius: 2px; }
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: $card-bg;
+  border: 1px solid $border;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  
+  &:hover { border-color: $primary; }
+  
+  &.active {
+    background: linear-gradient(135deg, $primary, $primary-light);
+    border-color: transparent;
+    color: white;
+    
+    .chip-count { background: rgba(255,255,255,0.2); color: white; }
+  }
+  
+  .chip-icon {
+    font-size: 18px;
+    
+    img { width: 20px; height: 20px; border-radius: 4px; }
+  }
+  
+  .chip-text { font-weight: 500; }
+  
+  .chip-count {
+    padding: 2px 8px;
+    background: rgba($primary, 0.1);
+    border-radius: 10px;
+    font-size: 12px;
+    color: $primary;
+  }
+}
+
+// 筛选
+.filter-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: $card-bg;
+  border-radius: 12px;
+  border: 1px solid $border;
+}
+
+.filter-left {
+  display: flex;
+  gap: 12px;
+  
+  :deep(.el-select) { width: 120px; }
+}
+
+.result-count {
+  font-size: 14px;
+  color: $text-muted;
+}
+
+// 商品网格
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  min-height: 400px;
+}
+
+.product-card {
+  background: $card-bg;
+  border-radius: 16px;
+  border: 1px solid $border;
+  overflow: hidden;
+  transition: all 0.3s;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  &.out-of-stock { opacity: 0.6; }
+}
+
+.card-image {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  cursor: pointer;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+  
+  &:hover img { transform: scale(1.05); }
+  
+  .image-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    color: white;
+  }
+  
+  &:hover .image-overlay { opacity: 1; }
+}
+
+.card-badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  
+  .badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    
+    &.hot { background: $danger; color: white; }
+    &.new { background: $primary; color: white; }
+    &.sold-out { background: $text-muted; color: white; }
+  }
+}
+
+.card-content {
+  padding: 16px;
+}
+
+.product-name {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: $text-muted;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  .stock-info {
+    font-size: 12px;
+    color: $text-muted;
+  }
+}
+
+.price-area {
+  margin-bottom: 16px;
+}
+
+.vip-price, .normal-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.current {
+  font-size: 20px;
+  font-weight: 700;
+  color: $danger;
+}
+
+.original {
+  font-size: 14px;
+  color: $text-muted;
+  text-decoration: line-through;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  
+  .el-button { flex: 1; }
+  .el-button:last-child { flex: none; width: 44px; }
+}
+
+// 空状态
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  color: $text-muted;
+  
+  h3 { margin: 16px 0 8px; color: $text; }
+}
+
+// 分页
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+// 购物车
+.cart-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: $text-muted;
+  
+  p { margin-top: 12px; }
+}
+
+.cart-items {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cart-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid $border;
+  
+  img {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+  
+  .item-info {
+    flex: 1;
     
     h4 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1e293b;
-      margin: 0 0 16px 0;
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 500;
     }
     
-    .items-list {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      
-      .purchase-item {
-        display: flex;
-        align-items: center;
-        padding: 16px;
-        border-bottom: 1px solid #f1f5f9;
-        
-        &:last-child {
-          border-bottom: none;
-        }
-        
-        .item-info {
-          display: flex;
-          align-items: center;
-          flex: 1;
-          gap: 12px;
-          
-          .item-image {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            object-fit: cover;
-          }
-          
-          .item-details {
-            h5 {
-              font-size: 14px;
-              font-weight: 600;
-              color: #1e293b;
-              margin: 0 0 4px 0;
-            }
-            
-            p {
-              font-size: 12px;
-              color: #64748b;
-              margin: 0;
-            }
-          }
-        }
-        
-        .item-quantity {
-          margin: 0 16px;
-          font-size: 14px;
-          color: #64748b;
-          font-weight: 500;
-        }
-        
-        .item-total {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1e293b;
-          min-width: 80px;
-          text-align: right;
-        }
-      }
+    .item-price {
+      font-size: 16px;
+      font-weight: 600;
+      color: $danger;
+      margin-bottom: 8px;
+    }
+    
+    .item-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+}
+
+.cart-footer {
+  padding-top: 16px;
+  border-top: 1px solid $border;
+  
+  .cart-total {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    
+    .total-price {
+      font-size: 20px;
+      font-weight: 700;
+      color: $danger;
     }
   }
   
-  .payment-summary {
-    margin-bottom: 24px;
-    padding: 16px;
-    background: #f8fafc;
+  .el-button { width: 100%; }
+}
+
+// 详情弹窗
+.detail-content {
+  display: flex;
+  gap: 32px;
+}
+
+.detail-left {
+  flex: 1;
+  
+  img {
+    width: 100%;
+    border-radius: 12px;
+  }
+}
+
+.detail-right {
+  flex: 1;
+  
+  .detail-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  h2 {
+    margin: 0 0 12px;
+    font-size: 24px;
+    color: $text;
+  }
+  
+  .detail-desc {
+    color: $text-muted;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  
+  .detail-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    
+    span { font-size: 13px; color: $text-muted; }
+  }
+  
+  .detail-price, .detail-stock, .detail-quantity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    
+    .price-label, .stock-label, .qty-label {
+      width: 60px;
+      color: $text-muted;
+      font-size: 14px;
+    }
+    
+    .price-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: $danger;
+    }
+    
+    .price-original {
+      font-size: 16px;
+      color: $text-muted;
+      text-decoration: line-through;
+    }
+  }
+  
+  .detail-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    
+    .el-button { flex: 1; }
+  }
+}
+
+// 购买弹窗
+.purchase-content {
+  .purchase-product {
+    display: flex;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border;
+    margin-bottom: 20px;
+    
+    img {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    
+    .product-info {
+      h4 { margin: 0 0 8px; font-size: 16px; }
+      p { margin: 0; color: $text-muted; font-size: 14px; }
+    }
+  }
+  
+  h5 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text;
+  }
+}
+
+.card-type-section, .quantity-section, .coupon-section, .payment-section {
+  margin-bottom: 20px;
+}
+
+.card-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.card-type-item {
+  padding: 12px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover { border-color: $primary; }
+  
+  &.active {
+    border-color: $primary;
+    background: rgba($primary, 0.05);
+  }
+  
+  .type-name { display: block; font-weight: 500; margin-bottom: 4px; }
+  .type-price { display: block; color: $danger; font-weight: 600; }
+  .type-stock { display: block; font-size: 12px; color: $text-muted; }
+}
+
+.quantity-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .max-hint { font-size: 12px; color: $text-muted; }
+}
+
+.selected-coupon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba($success, 0.1);
+  border-radius: 8px;
+  
+  .coupon-discount { color: $success; font-weight: 600; margin-left: auto; }
+}
+
+.available-coupons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  
+  .coupon-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba($primary, 0.08), rgba($primary, 0.02));
+    border: 1px dashed rgba($primary, 0.3);
     border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      border-color: $primary;
+      background: linear-gradient(135deg, rgba($primary, 0.12), rgba($primary, 0.05));
+      transform: translateY(-1px);
+    }
+    
+    .coupon-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: $danger;
+      min-width: 50px;
+    }
+    
+    .coupon-info {
+      .coupon-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: $text;
+        margin-bottom: 2px;
+      }
+      .coupon-condition {
+        font-size: 11px;
+        color: $text-muted;
+      }
+    }
+  }
+}
+
+.no-coupons {
+  padding: 12px;
+  text-align: center;
+  color: $text-muted;
+  font-size: 13px;
+  background: $bg;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.coupon-input {
+  margin-top: 8px;
+}
+
+.price-summary {
+  background: $bg;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+  
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 14px;
+    
+    &.discount span:last-child { color: $success; }
+    
+    &.total {
+      border-top: 1px solid $border;
+      padding-top: 12px;
+      margin-top: 8px;
+      font-weight: 600;
+      
+      .total-price { font-size: 20px; color: $danger; }
+    }
+  }
+}
+
+// 批量购买
+.batch-content {
+  .batch-items {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+  }
+  
+  .batch-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid $border;
+    
+    img { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; }
+    
+    .item-info {
+      flex: 1;
+      h4 { margin: 0; font-size: 14px; }
+      span { font-size: 13px; color: $text-muted; }
+    }
+    
+    .item-price { font-weight: 600; color: $danger; }
+  }
+  
+  .batch-summary {
+    background: $bg;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
     
     .summary-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 14px;
+      padding: 8px 0;
       
-      &:last-child {
-        margin-bottom: 0;
-      }
-      
-      &.total-row {
-        font-size: 16px;
-        font-weight: 600;
-        padding-top: 8px;
-        border-top: 1px solid #e2e8f0;
-        margin-top: 8px;
-        
-        .total-amount {
-          color: #ef4444;
-          font-size: 18px;
-        }
-      }
-      
-      .discount {
-        color: #10b981;
-      }
-      
-      .balance {
-        color: #3b82f6;
-        font-weight: 500;
-      }
+      &.discount span:last-child { color: $success; }
+      &.total { font-weight: 600; .total-price { color: $danger; font-size: 18px; } }
     }
   }
   
-  .payment-method {
-    h5 {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1e293b;
-      margin: 0 0 12px 0;
-    }
+  .payment-method h5 { margin: 0 0 12px; font-size: 14px; }
+}
+
+// 评价
+.review-form {
+  .review-rating {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
     
-    .payment-options {
-      width: 100%;
-      
-      .payment-option {
-        width: 100%;
-        margin-bottom: 12px;
-        
-        :deep(.el-radio__label) {
-          width: 100%;
-          padding-left: 12px;
-        }
-      }
-    }
-    
-    .payment-method-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        border-color: #3b82f6;
-      }
-      
-      .method-name {
-        font-weight: 500;
-        color: #1e293b;
-      }
-      
-      .balance-info {
-        font-size: 12px;
-        color: #64748b;
-      }
-    }
+    span { font-size: 14px; color: $text-muted; }
   }
-  
-  // 优惠券样式
-  .coupon-section {
-    margin-bottom: 24px;
-    
-    h5 {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1e293b;
-      margin: 0 0 16px 0;
-    }
-    
-    .selected-coupon {
-      .coupon-card {
-        &.selected {
-          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-          border: 2px solid #0ea5e9;
-          position: relative;
-          
-          .remove-coupon-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            color: #64748b;
-            
-            &:hover {
-              color: #ef4444;
-            }
-          }
-        }
-      }
-    }
-    
-    .coupon-input-section {
-      .coupon-input-group {
-        margin-bottom: 12px;
-        
-        :deep(.el-input-group__append) {
-          .el-button {
-            border-radius: 0 8px 8px 0;
-          }
-        }
-      }
-      
-      .coupon-message {
-        margin-bottom: 16px;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        
-        &.success {
-          background: #f0f9ff;
-          color: #0369a1;
-          border: 1px solid #bae6fd;
-        }
-        
-        &.error {
-          background: #fef2f2;
-          color: #dc2626;
-          border: 1px solid #fecaca;
-        }
-      }
-      
-      .available-coupons {
-        .coupons-title {
-          font-size: 13px;
-          color: #64748b;
-          margin-bottom: 12px;
-          font-weight: 500;
-        }
-        
-        .coupons-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          
-          .coupon-card {
-            &.available {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              
-              &:hover {
-                border-color: #3b82f6;
-                background: #f0f9ff;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    .coupon-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      
-      .coupon-info {
-        flex: 1;
-        
-        .coupon-name {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 4px;
-        }
-        
-        .coupon-desc {
-          font-size: 12px;
-          color: #64748b;
-          margin-bottom: 2px;
-        }
-        
-        .coupon-code {
-          font-size: 11px;
-          color: #9ca3af;
-          font-family: monospace;
-        }
-      }
-      
-      .coupon-discount {
-        margin-left: 16px;
-        
-        .discount-amount {
-          font-size: 16px;
-          font-weight: 700;
-          color: #10b981;
-        }
-      }
-      
-      .coupon-action {
-        margin-left: 16px;
-      }
-    }
+}
+
+// 响应式
+@media (max-width: 768px) {
+  .nav-container { padding: 12px 16px; }
+  .nav-search { display: none; }
+  .main-content { padding: 16px; }
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .detail-content { flex-direction: column; }
+  .card-type-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card, 
+  .category-chip,
+  .gradient-orb,
+  .animate-fade-in,
+  .animate-in { 
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 </style>

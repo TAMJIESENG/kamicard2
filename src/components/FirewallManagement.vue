@@ -1,5 +1,45 @@
 <template>
   <div class="firewall-management">
+    <!-- 威胁概览卡片 -->
+    <div class="threat-overview">
+      <div class="threat-card" :style="{ borderColor: threatLevel.color }">
+        <div class="threat-indicator" :style="{ background: threatLevel.color }">
+          <div class="threat-score">{{ threatLevel.score }}</div>
+          <div class="threat-label">威胁指数</div>
+        </div>
+        <div class="threat-info">
+          <div class="threat-status">
+            <span class="status-dot" :style="{ background: threatLevel.color }"></span>
+            <span class="status-text">{{ threatLevel.description }}</span>
+          </div>
+          <div class="threat-stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.overview.blocked24h || 0 }}</span>
+              <span class="stat-label">24h拦截</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.overview.activeBans || 0 }}</span>
+              <span class="stat-label">活跃封禁</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.overview.blockRate || '0%' }}</span>
+              <span class="stat-label">拦截率</span>
+            </div>
+          </div>
+        </div>
+        <div class="threat-actions">
+          <el-button size="small" @click="refreshStats">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+          <el-button size="small" type="primary" @click="cleanupData">
+            <el-icon><Delete /></el-icon>
+            清理
+          </el-button>
+        </div>
+      </div>
+    </div>
+
     <el-card class="management-card">
       <template #header>
         <div class="card-header">
@@ -7,12 +47,29 @@
             <el-icon><Lock /></el-icon>
             防火墙管理
           </span>
-          <el-switch
-            v-model="settings.enabled"
-            @change="handleEnabledChange"
-            active-text="启用防火墙"
-            inactive-text="禁用防火墙"
-          />
+          <div class="header-actions">
+            <el-button size="small" @click="exportConfig">
+              <el-icon><Download /></el-icon>
+              导出配置
+            </el-button>
+            <el-upload
+              :before-upload="handleImportConfig"
+              :show-file-list="false"
+              accept=".json"
+              style="display: inline-block; margin: 0 10px;"
+            >
+              <el-button size="small">
+                <el-icon><Upload /></el-icon>
+                导入配置
+              </el-button>
+            </el-upload>
+            <el-switch
+              v-model="settings.enabled"
+              @change="handleEnabledChange"
+              active-text="启用"
+              inactive-text="禁用"
+            />
+          </div>
         </div>
       </template>
 
@@ -356,14 +413,21 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Lock, Plus, Delete, Check, Refresh } from '@element-plus/icons-vue'
+import { Lock, Plus, Delete, Check, Refresh, Download, Upload } from '@element-plus/icons-vue'
 import {
   getFirewallSettings,
   saveFirewallSettings,
   getFirewallLogs,
   clearFirewallLogs,
   getBannedIPs,
-  unbanIP
+  unbanIP,
+  getFirewallStats,
+  getThreatLevel,
+  exportFirewallConfig,
+  importFirewallConfig,
+  cleanupExpiredData,
+  batchBanIPs,
+  batchUnbanIPs
 } from '@/utils/firewall'
 
 const activeTab = ref('basic')
@@ -375,6 +439,10 @@ const logPageSize = ref(50)
 const newWhitelistIP = ref('')
 const newBlacklistIP = ref('')
 const autoBannedIPs = ref([])
+const stats = ref({ overview: {}, trends: {}, attackTypes: {}, recentBlocked: [], topViolators: [] })
+const threatLevel = ref({ score: 0, level: 'safe', color: '#22c55e', description: '安全' })
+const batchIPInput = ref('')
+const selectedBannedIPs = ref([])
 
 // 时间转换（毫秒转分钟）
 const timeWindowMinutes = computed({
@@ -601,16 +669,126 @@ const loadLogs = () => {
   logs.value = getFirewallLogs(1000, logFilter.value || null)
 }
 
+// 刷新统计数据
+const refreshStats = () => {
+  stats.value = getFirewallStats()
+  threatLevel.value = getThreatLevel()
+}
+
+// 清理过期数据
+const cleanupData = () => {
+  ElMessageBox.confirm('确定要清理过期数据吗？这将清除过期的封禁记录和违规记录。', '确认', {
+    type: 'warning'
+  }).then(() => {
+    const result = cleanupExpiredData()
+    if (result.success) {
+      ElMessage.success('过期数据已清理')
+      refreshStats()
+      loadAutoBannedIPs()
+    } else {
+      ElMessage.error('清理失败: ' + result.error)
+    }
+  }).catch(() => {})
+}
+
+// 导出配置
+const exportConfig = () => {
+  const config = exportFirewallConfig()
+  if (config) {
+    const blob = new Blob([config], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `firewall-config-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('配置已导出')
+  } else {
+    ElMessage.error('导出失败')
+  }
+}
+
+// 导入配置
+const handleImportConfig = (file) => {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const result = importFirewallConfig(e.target.result)
+    if (result.success) {
+      ElMessage.success(result.message)
+      Object.assign(settings, getFirewallSettings())
+      refreshStats()
+      loadLogs()
+      loadAutoBannedIPs()
+    } else {
+      ElMessage.error('导入失败: ' + result.message)
+    }
+  }
+  reader.readAsText(file)
+  return false
+}
+
+// 批量封禁
+const handleBatchBan = () => {
+  if (!batchIPInput.value.trim()) {
+    ElMessage.warning('请输入要封禁的IP列表')
+    return
+  }
+  
+  const ips = batchIPInput.value.split('\n').map(ip => ip.trim()).filter(ip => ip)
+  if (ips.length === 0) {
+    ElMessage.warning('没有有效的IP地址')
+    return
+  }
+  
+  ElMessageBox.confirm(`确定要封禁 ${ips.length} 个IP吗？`, '确认批量封禁', {
+    type: 'warning'
+  }).then(() => {
+    const result = batchBanIPs(ips, '管理员批量封禁')
+    if (result.success) {
+      ElMessage.success(`成功封禁 ${result.addedCount} 个IP`)
+      batchIPInput.value = ''
+      Object.assign(settings, getFirewallSettings())
+      refreshStats()
+    } else {
+      ElMessage.error('批量封禁失败')
+    }
+  }).catch(() => {})
+}
+
+// 批量解封
+const handleBatchUnban = () => {
+  if (selectedBannedIPs.value.length === 0) {
+    ElMessage.warning('请先选择要解封的IP')
+    return
+  }
+  
+  ElMessageBox.confirm(`确定要解封选中的 ${selectedBannedIPs.value.length} 个IP吗？`, '确认批量解封', {
+    type: 'warning'
+  }).then(() => {
+    const result = batchUnbanIPs(selectedBannedIPs.value)
+    if (result.success) {
+      ElMessage.success(`成功解封 ${result.unbannedCount} 个IP`)
+      selectedBannedIPs.value = []
+      loadAutoBannedIPs()
+      refreshStats()
+    } else {
+      ElMessage.error('批量解封失败')
+    }
+  }).catch(() => {})
+}
+
 // 初始化
 onMounted(() => {
   loadLogs()
   loadAutoBannedIPs()
+  refreshStats()
   
-  // 定期刷新日志和封禁列表
+  // 定期刷新
   setInterval(() => {
     loadLogs()
     loadAutoBannedIPs()
-  }, 5000)
+    refreshStats()
+  }, 10000)
 })
 
 watch(logFilter, () => {
@@ -621,7 +799,107 @@ watch(logFilter, () => {
 
 <style lang="scss" scoped>
 .firewall-management {
+  // 威胁概览卡片
+  .threat-overview {
+    margin-bottom: 20px;
+    
+    .threat-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      border: 2px solid;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      
+      .threat-indicator {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        
+        .threat-score {
+          font-size: 32px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        
+        .threat-label {
+          font-size: 11px;
+          margin-top: 4px;
+          opacity: 0.9;
+        }
+      }
+      
+      .threat-info {
+        flex: 1;
+        
+        .threat-status {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+          
+          .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+          }
+          
+          .status-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+          }
+        }
+        
+        .threat-stats {
+          display: flex;
+          gap: 32px;
+          
+          .stat-item {
+            display: flex;
+            flex-direction: column;
+            
+            .stat-value {
+              font-size: 24px;
+              font-weight: 700;
+              color: #1f2937;
+            }
+            
+            .stat-label {
+              font-size: 12px;
+              color: #6b7280;
+              margin-top: 2px;
+            }
+          }
+        }
+      }
+      
+      .threat-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
   .management-card {
+    border-radius: 12px;
+    
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -633,6 +911,12 @@ watch(logFilter, () => {
         gap: 8px;
         font-size: 18px;
         font-weight: 600;
+      }
+      
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
     }
   }
@@ -649,7 +933,7 @@ watch(logFilter, () => {
       font-size: 16px;
       font-weight: 600;
       color: #303133;
-      border-left: 4px solid #409eff;
+      border-left: 4px solid #2563eb;
       padding-left: 10px;
     }
 
@@ -693,6 +977,101 @@ watch(logFilter, () => {
     gap: 10px;
     padding-top: 20px;
     border-top: 1px solid #ebeef5;
+  }
+  
+  // 攻击类型统计
+  .attack-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+    
+    .attack-stat-item {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+      
+      .attack-type {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 8px;
+      }
+      
+      .attack-count {
+        font-size: 28px;
+        font-weight: 700;
+        color: #ef4444;
+      }
+    }
+  }
+  
+  // 违规者排行
+  .violators-list {
+    .violator-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #e5e7eb;
+      
+      .violator-rank {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #2563eb;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 12px;
+        
+        &.top-3 {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+      }
+      
+      .violator-ip {
+        flex: 1;
+        margin-left: 12px;
+        font-family: monospace;
+        color: #374151;
+      }
+      
+      .violator-count {
+        font-weight: 600;
+        color: #ef4444;
+      }
+    }
+  }
+}
+
+// 响应式
+@media (max-width: 768px) {
+  .firewall-management {
+    .threat-card {
+      flex-direction: column;
+      text-align: center;
+      
+      .threat-stats {
+        justify-content: center;
+      }
+      
+      .threat-actions {
+        flex-direction: row;
+      }
+    }
   }
 }
 </style>

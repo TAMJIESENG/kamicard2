@@ -754,3 +754,314 @@ export const unbanIP = (ip) => {
   }
 }
 
+// ==================== 新增高级防火墙功能 ====================
+
+// 地理位置限制检查（基于简单的IP段判断）
+export const checkGeoRestriction = (clientId = null) => {
+  const settings = getFirewallSettings()
+  if (!settings.enabled || !settings.geoRestriction?.enabled) {
+    return { allowed: true }
+  }
+
+  // 前端环境下，地理位置限制主要依赖后端实现
+  // 这里提供基础框架
+  return { allowed: true }
+}
+
+// 获取防火墙统计数据
+export const getFirewallStats = () => {
+  try {
+    const logs = JSON.parse(localStorage.getItem('firewall_logs') || '[]')
+    const violations = JSON.parse(localStorage.getItem('firewall_violations') || '{}')
+    const autoBanned = JSON.parse(localStorage.getItem('firewall_blacklist_auto') || '[]')
+    const settings = getFirewallSettings()
+    
+    const now = Date.now()
+    const last24h = now - 86400000
+    const last7d = now - 604800000
+    
+    // 统计最近24小时的日志
+    const logs24h = logs.filter(log => new Date(log.timestamp).getTime() > last24h)
+    const logs7d = logs.filter(log => new Date(log.timestamp).getTime() > last7d)
+    
+    // 按类型统计
+    const blocked24h = logs24h.filter(log => log.type === 'blocked').length
+    const allowed24h = logs24h.filter(log => log.type === 'allowed').length
+    const warning24h = logs24h.filter(log => log.type === 'warning').length
+    
+    // 攻击类型统计
+    const attackTypes = {}
+    logs.filter(log => log.type === 'blocked' && log.patterns).forEach(log => {
+      log.patterns.forEach(pattern => {
+        attackTypes[pattern] = (attackTypes[pattern] || 0) + 1
+      })
+    })
+    
+    // 活跃封禁数
+    const activeBans = autoBanned.filter(item => now < item.bannedUntil).length
+    
+    // 违规IP数
+    const violationCount = Object.keys(violations).length
+    
+    // 计算拦截率
+    const totalRequests24h = blocked24h + allowed24h
+    const blockRate = totalRequests24h > 0 ? ((blocked24h / totalRequests24h) * 100).toFixed(2) : 0
+    
+    return {
+      overview: {
+        totalLogs: logs.length,
+        blocked24h,
+        allowed24h,
+        warning24h,
+        blockRate: `${blockRate}%`,
+        activeBans,
+        violationCount,
+        blacklistCount: settings.ipBlacklist?.length || 0,
+        whitelistCount: settings.ipWhitelist?.length || 0
+      },
+      trends: {
+        last24h: logs24h.length,
+        last7d: logs7d.length,
+        avgDaily: Math.round(logs7d.length / 7)
+      },
+      attackTypes,
+      recentBlocked: logs.filter(log => log.type === 'blocked').slice(0, 10),
+      topViolators: Object.entries(violations)
+        .map(([ip, records]) => ({ ip, count: records.length }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+    }
+  } catch (error) {
+    console.error('获取防火墙统计失败:', error)
+    return {
+      overview: {},
+      trends: {},
+      attackTypes: {},
+      recentBlocked: [],
+      topViolators: []
+    }
+  }
+}
+
+// 导出防火墙配置
+export const exportFirewallConfig = () => {
+  try {
+    const settings = getFirewallSettings()
+    const logs = JSON.parse(localStorage.getItem('firewall_logs') || '[]')
+    const violations = JSON.parse(localStorage.getItem('firewall_violations') || '{}')
+    const autoBanned = JSON.parse(localStorage.getItem('firewall_blacklist_auto') || '[]')
+    
+    const exportData = {
+      version: '1.0',
+      exportTime: new Date().toISOString(),
+      settings,
+      logs: logs.slice(0, 500), // 只导出最近500条日志
+      violations,
+      autoBanned
+    }
+    
+    return JSON.stringify(exportData, null, 2)
+  } catch (error) {
+    console.error('导出防火墙配置失败:', error)
+    return null
+  }
+}
+
+// 导入防火墙配置
+export const importFirewallConfig = (configJson) => {
+  try {
+    const config = JSON.parse(configJson)
+    
+    if (!config.version || !config.settings) {
+      throw new Error('无效的配置文件格式')
+    }
+    
+    // 导入设置
+    saveFirewallSettings(config.settings)
+    
+    // 可选：导入日志
+    if (config.logs) {
+      localStorage.setItem('firewall_logs', JSON.stringify(config.logs))
+    }
+    
+    // 可选：导入违规记录
+    if (config.violations) {
+      localStorage.setItem('firewall_violations', JSON.stringify(config.violations))
+    }
+    
+    // 可选：导入自动封禁列表
+    if (config.autoBanned) {
+      localStorage.setItem('firewall_blacklist_auto', JSON.stringify(config.autoBanned))
+    }
+    
+    return { success: true, message: '配置导入成功' }
+  } catch (error) {
+    console.error('导入防火墙配置失败:', error)
+    return { success: false, message: error.message }
+  }
+}
+
+// 实时威胁监控
+export const getThreatLevel = () => {
+  try {
+    const stats = getFirewallStats()
+    const { blocked24h, activeBans, violationCount } = stats.overview
+    
+    // 计算威胁等级 (0-100)
+    let threatScore = 0
+    
+    // 基于24小时拦截数
+    if (blocked24h > 100) threatScore += 40
+    else if (blocked24h > 50) threatScore += 25
+    else if (blocked24h > 20) threatScore += 15
+    else if (blocked24h > 5) threatScore += 5
+    
+    // 基于活跃封禁数
+    if (activeBans > 10) threatScore += 30
+    else if (activeBans > 5) threatScore += 20
+    else if (activeBans > 2) threatScore += 10
+    else if (activeBans > 0) threatScore += 5
+    
+    // 基于违规IP数
+    if (violationCount > 20) threatScore += 30
+    else if (violationCount > 10) threatScore += 20
+    else if (violationCount > 5) threatScore += 10
+    else if (violationCount > 0) threatScore += 5
+    
+    // 确定威胁等级
+    let level, color, description
+    if (threatScore >= 70) {
+      level = 'critical'
+      color = '#ef4444'
+      description = '严重威胁'
+    } else if (threatScore >= 50) {
+      level = 'high'
+      color = '#f97316'
+      description = '高风险'
+    } else if (threatScore >= 30) {
+      level = 'medium'
+      color = '#f59e0b'
+      description = '中等风险'
+    } else if (threatScore >= 10) {
+      level = 'low'
+      color = '#10b981'
+      description = '低风险'
+    } else {
+      level = 'safe'
+      color = '#22c55e'
+      description = '安全'
+    }
+    
+    return {
+      score: threatScore,
+      level,
+      color,
+      description,
+      details: stats.overview
+    }
+  } catch (error) {
+    console.error('获取威胁等级失败:', error)
+    return {
+      score: 0,
+      level: 'unknown',
+      color: '#6b7280',
+      description: '未知'
+    }
+  }
+}
+
+// 批量封禁IP
+export const batchBanIPs = (ips, reason = '批量封禁') => {
+  try {
+    const settings = getFirewallSettings()
+    let addedCount = 0
+    
+    ips.forEach(ip => {
+      if (!settings.ipBlacklist.includes(ip)) {
+        settings.ipBlacklist.push(ip)
+        addedCount++
+      }
+    })
+    
+    saveFirewallSettings(settings)
+    
+    // 记录日志
+    ips.forEach(ip => {
+      const logs = JSON.parse(localStorage.getItem('firewall_logs') || '[]')
+      logs.unshift({
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'blocked',
+        timestamp: new Date().toISOString(),
+        ip,
+        reason: `批量封禁: ${reason}`
+      })
+      localStorage.setItem('firewall_logs', JSON.stringify(logs.slice(0, 1000)))
+    })
+    
+    return { success: true, addedCount }
+  } catch (error) {
+    console.error('批量封禁失败:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// 批量解封IP
+export const batchUnbanIPs = (ips) => {
+  try {
+    let unbannedCount = 0
+    ips.forEach(ip => {
+      if (unbanIP(ip)) {
+        unbannedCount++
+      }
+    })
+    return { success: true, unbannedCount }
+  } catch (error) {
+    console.error('批量解封失败:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// 清理过期数据
+export const cleanupExpiredData = () => {
+  try {
+    const now = Date.now()
+    
+    // 清理过期的自动封禁
+    const autoBanned = JSON.parse(localStorage.getItem('firewall_blacklist_auto') || '[]')
+    const activeAutoBanned = autoBanned.filter(item => now < item.bannedUntil)
+    localStorage.setItem('firewall_blacklist_auto', JSON.stringify(activeAutoBanned))
+    
+    // 清理过期的违规记录（超过7天）
+    const violations = JSON.parse(localStorage.getItem('firewall_violations') || '{}')
+    const sevenDaysAgo = now - 604800000
+    Object.keys(violations).forEach(ip => {
+      violations[ip] = violations[ip].filter(v => v.timestamp > sevenDaysAgo)
+      if (violations[ip].length === 0) {
+        delete violations[ip]
+      }
+    })
+    localStorage.setItem('firewall_violations', JSON.stringify(violations))
+    
+    // 清理过期的频率限制记录
+    const rateRecords = getRateLimitRecords()
+    Object.keys(rateRecords).forEach(ip => {
+      const record = rateRecords[ip]
+      // 清理过期的封禁
+      if (record.bannedUntil && now > record.bannedUntil) {
+        record.bannedUntil = null
+      }
+      // 清理过期的请求记录
+      const settings = getFirewallSettings()
+      record.requests = record.requests.filter(
+        timestamp => now - timestamp < settings.rateLimit.timeWindow
+      )
+    })
+    saveRateLimitRecords(rateRecords)
+    
+    return { success: true, message: '过期数据已清理' }
+  } catch (error) {
+    console.error('清理过期数据失败:', error)
+    return { success: false, error: error.message }
+  }
+}
+

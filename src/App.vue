@@ -2,6 +2,7 @@
   <div id="app">
     <router-view />
     <DevTools v-if="showDevTools" />
+    <BackToTop :visibility-height="400" />
   </div>
 </template>
 
@@ -9,6 +10,7 @@
 import { computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import DevTools from '@/components/DevTools.vue'
+import BackToTop from '@/components/BackToTop.vue'
 
 const userStore = useUserStore()
 

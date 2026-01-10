@@ -1,140 +1,155 @@
 <template>
-  <div class="home-announcements" v-if="announcements.length > 0">
+  <div class="home-announcements">
     <div class="announcements-container">
-      <!-- 公告轮播区域 -->
-      <div class="announcements-carousel" v-if="announcements.length > 0">
-        <el-carousel 
-          :interval="8000" 
-          :arrow="announcements.length > 1 ? 'hover' : 'never'"
-          :indicator-position="announcements.length > 1 ? 'outside' : 'none'"
-          height="auto"
-          class="announcement-carousel"
-        >
-          <el-carousel-item 
-            v-for="announcement in announcements.slice(0, 3)" 
-            :key="announcement.id"
-            class="carousel-item"
+      <!-- 有公告时显示轮播 -->
+      <template v-if="announcements.length > 0">
+        <!-- 公告轮播区域 -->
+        <div class="announcements-carousel">
+          <el-carousel 
+            :interval="8000" 
+            :arrow="announcements.length > 1 ? 'hover' : 'never'"
+            :indicator-position="announcements.length > 1 ? 'outside' : 'none'"
+            height="auto"
+            class="announcement-carousel"
           >
-            <div 
-              class="announcement-card"
-              :class="`announcement-${announcement.type}`"
+            <el-carousel-item 
+              v-for="announcement in announcements.slice(0, 3)" 
+              :key="announcement.id"
+              class="carousel-item"
             >
-              <div class="announcement-icon">
-                <el-icon :size="20" :color="getAnnouncementTypeColor(announcement.type)">
-                  <component :is="getTypeIcon(announcement.type)" />
-                </el-icon>
-              </div>
-              
-              <div class="announcement-main">
-                <div class="announcement-header">
-                  <div class="announcement-title-row">
-                    <el-tag 
-                      :type="getTagType(announcement.type)" 
-                      size="small"
-                      class="type-tag"
-                      effect="light"
-                    >
-                      {{ getAnnouncementTypeText(announcement.type) }}
-                    </el-tag>
-                    <el-tag 
-                      v-if="announcement.priority === 'high'" 
-                      type="danger" 
-                      size="small"
-                      class="priority-tag"
-                      effect="dark"
-                    >
-                      <el-icon class="priority-icon"><Warning /></el-icon>
-                      重要
-                    </el-tag>
-                    <span class="new-badge" v-if="isNewAnnouncement(announcement)">NEW</span>
-                  </div>
-                  
-                  <h3 class="title-text">{{ announcement.title }}</h3>
-                  
-                  <div class="announcement-meta">
-                    <span class="create-time">
-                      <el-icon class="time-icon"><Clock /></el-icon>
-                      {{ formatTime(announcement.createTime) }}
-                    </span>
-                    <span class="author">
-                      <el-icon class="author-icon"><User /></el-icon>
-                      {{ announcement.author }}
-                    </span>
-                  </div>
+              <div 
+                class="announcement-card"
+                :class="`announcement-${announcement.type}`"
+              >
+                <div class="announcement-icon">
+                  <el-icon :size="20" :color="getAnnouncementTypeColor(announcement.type)">
+                    <component :is="getTypeIcon(announcement.type)" />
+                  </el-icon>
                 </div>
                 
-                <div 
-                  class="announcement-content" 
-                  :class="{ 'expanded': expandedIds.includes(announcement.id) }"
-                >
-                  <div class="content-wrapper" v-html="getDisplayContent(announcement)"></div>
+                <div class="announcement-main">
+                  <div class="announcement-header">
+                    <div class="announcement-title-row">
+                      <el-tag 
+                        :type="getTagType(announcement.type)" 
+                        size="small"
+                        class="type-tag"
+                        effect="light"
+                      >
+                        {{ getAnnouncementTypeText(announcement.type) }}
+                      </el-tag>
+                      <el-tag 
+                        v-if="announcement.priority === 'high'" 
+                        type="danger" 
+                        size="small"
+                        class="priority-tag"
+                        effect="dark"
+                      >
+                        <el-icon class="priority-icon"><Warning /></el-icon>
+                        重要
+                      </el-tag>
+                      <span class="new-badge" v-if="isNewAnnouncement(announcement)">NEW</span>
+                    </div>
+                    
+                    <h3 class="title-text">{{ announcement.title }}</h3>
+                    
+                    <div class="announcement-meta">
+                      <span class="create-time">
+                        <el-icon class="time-icon"><Clock /></el-icon>
+                        {{ formatTime(announcement.createTime) }}
+                      </span>
+                      <span class="author">
+                        <el-icon class="author-icon"><User /></el-icon>
+                        {{ announcement.author }}
+                      </span>
+                    </div>
+                  </div>
                   
-                  <div class="content-fade" v-if="isContentTruncated(announcement.content) && !expandedIds.includes(announcement.id)"></div>
-                </div>
-                
-                <div class="announcement-actions" v-if="isContentTruncated(announcement.content)">
-                  <el-button 
-                    type="primary" 
-                    link
-                    size="small" 
-                    @click="expandAnnouncement(announcement)"
-                    class="expand-btn"
+                  <div 
+                    class="announcement-content" 
+                    :class="{ 'expanded': expandedIds.includes(announcement.id) }"
                   >
-                    <span>{{ expandedIds.includes(announcement.id) ? '收起' : '展开详情' }}</span>
-                    <el-icon class="expand-icon" :class="{ 'rotated': expandedIds.includes(announcement.id) }">
-                      <ArrowDown />
-                    </el-icon>
-                  </el-button>
+                    <div class="content-wrapper" v-html="getDisplayContent(announcement)"></div>
+                    
+                    <div class="content-fade" v-if="isContentTruncated(announcement.content) && !expandedIds.includes(announcement.id)"></div>
+                  </div>
+                  
+                  <div class="announcement-actions" v-if="isContentTruncated(announcement.content)">
+                    <el-button 
+                      type="primary" 
+                      link
+                      size="small" 
+                      @click="expandAnnouncement(announcement)"
+                      class="expand-btn"
+                    >
+                      <span>{{ expandedIds.includes(announcement.id) ? '收起' : '展开详情' }}</span>
+                      <el-icon class="expand-icon" :class="{ 'rotated': expandedIds.includes(announcement.id) }">
+                        <ArrowDown />
+                      </el-icon>
+                    </el-button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </el-carousel-item>
-        </el-carousel>
-      </div>
-      
-      <!-- 更多公告入口 -->
-      <div class="more-announcements" v-if="hasMoreAnnouncements">
-        <el-button 
-          type="primary" 
-          link 
-          @click="showAllAnnouncements = !showAllAnnouncements"
-          class="more-btn"
-        >
-          <el-icon><Document /></el-icon>
-          {{ showAllAnnouncements ? '收起更多公告' : `查看更多公告 (${allAnnouncements.length - 3}条)` }}
-        </el-button>
-      </div>
-      
-      <!-- 展开的公告列表 -->
-      <transition name="slide-down">
-        <div class="extended-announcements" v-show="showAllAnnouncements && hasMoreAnnouncements">
-          <div class="extended-title">
-            <h4>历史公告</h4>
-            <span class="divider"></span>
-          </div>
-          <div class="extended-list">
-            <div 
-              v-for="announcement in allAnnouncements.slice(3)" 
-              :key="`extended-${announcement.id}`"
-              class="extended-item"
-              :class="`announcement-${announcement.type}`"
-            >
-              <div class="extended-icon">
-                <el-icon :size="16" :color="getAnnouncementTypeColor(announcement.type)">
-                  <component :is="getTypeIcon(announcement.type)" />
-                </el-icon>
-              </div>
-              <div class="extended-content">
-                <div class="extended-header">
-                  <span class="extended-title-text">{{ announcement.title }}</span>
-                  <span class="extended-time">{{ formatTime(announcement.createTime) }}</span>
-                </div>
-                <div class="extended-summary" v-html="getContentSummary(announcement.content)"></div>
-              </div>
-            </div>
-          </div>
+            </el-carousel-item>
+          </el-carousel>
         </div>
-      </transition>
+        
+        <!-- 更多公告入口 -->
+        <div class="more-announcements" v-if="hasMoreAnnouncements">
+          <el-button 
+            type="primary" 
+            link 
+            @click="showAllAnnouncements = !showAllAnnouncements"
+            class="more-btn"
+          >
+            <el-icon><Document /></el-icon>
+            {{ showAllAnnouncements ? '收起更多公告' : `查看更多公告 (${allAnnouncements.length - 3}条)` }}
+          </el-button>
+        </div>
+        
+        <!-- 展开的公告列表 -->
+        <transition name="slide-down">
+          <div class="extended-announcements" v-show="showAllAnnouncements && hasMoreAnnouncements">
+            <div class="extended-title">
+              <h4>历史公告</h4>
+              <span class="divider"></span>
+            </div>
+            <div class="extended-list">
+              <div 
+                v-for="announcement in allAnnouncements.slice(3)" 
+                :key="`extended-${announcement.id}`"
+                class="extended-item"
+                :class="`announcement-${announcement.type}`"
+              >
+                <div class="extended-icon">
+                  <el-icon :size="16" :color="getAnnouncementTypeColor(announcement.type)">
+                    <component :is="getTypeIcon(announcement.type)" />
+                  </el-icon>
+                </div>
+                <div class="extended-content">
+                  <div class="extended-header">
+                    <span class="extended-title-text">{{ announcement.title }}</span>
+                    <span class="extended-time">{{ formatTime(announcement.createTime) }}</span>
+                  </div>
+                  <div class="extended-summary" v-html="getContentSummary(announcement.content)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </template>
+      
+      <!-- 无公告时显示空状态 -->
+      <div v-else class="empty-announcements">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <h4>暂无公告</h4>
+        <p>系统运行正常，暂时没有新的公告通知</p>
+      </div>
     </div>
   </div>
 </template>
@@ -369,6 +384,10 @@ onMounted(() => {
 <style lang="scss" scoped>
 .home-announcements {
   margin-bottom: 32px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px;
   
   .announcements-container {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -387,6 +406,37 @@ onMounted(() => {
       height: 4px;
       background: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #06b6d4 100%);
       border-radius: 16px 16px 0 0;
+    }
+  }
+  
+  // 空状态样式
+  .empty-announcements {
+    text-align: center;
+    padding: 48px 24px;
+    
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(59, 130, 246, 0.05));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #2563eb;
+    }
+    
+    h4 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #64748b;
     }
   }
   

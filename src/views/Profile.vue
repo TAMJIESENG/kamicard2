@@ -1,20 +1,60 @@
 <template>
   <div class="profile-page">
-    <el-container>
-      <el-header>
-        <div class="header-content">
-          <h2>个人资料</h2>
-          <el-button @click="$router.go(-1)">返回</el-button>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+    </div>
+    
+    <!-- 浮动导航栏 -->
+    <header class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <button class="back-btn" @click="$router.go(-1)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <div class="page-title">
+            <h1>个人资料</h1>
+            <p>管理您的账户信息和安全设置</p>
+          </div>
         </div>
-      </el-header>
+        <div class="header-actions">
+          <el-button 
+            v-if="editing" 
+            @click="cancelEdit"
+            class="cancel-btn"
+          >
+            取消
+          </el-button>
+          <el-button 
+            type="primary" 
+            @click="editing ? saveProfile() : startEdit()"
+            class="save-btn"
+          >
+            <svg v-if="!editing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            {{ editing ? '保存更改' : '编辑资料' }}
+          </el-button>
+        </div>
+      </div>
+    </header>
       
-      <el-main>
-        <el-row :gutter="20">
+    <main class="page-main">
+        <el-row :gutter="24">
           <el-col :span="8">
-            <el-card>
-              <template #header>
+            <!-- 头像卡片 -->
+            <div class="profile-card avatar-card">
+              <div class="card-header-custom">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
                 <span>头像信息</span>
-              </template>
+              </div>
               
               <div class="avatar-section">
                 <div class="avatar-container">
@@ -74,116 +114,171 @@
                   </div>
                 </div>
               </div>
-            </el-card>
+            </div>
             
-            <el-card class="mt-20">
-              <template #header>
+            <!-- 账户统计卡片 -->
+            <div class="profile-card stats-card">
+              <div class="card-header-custom">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3v18h18"/>
+                  <path d="M18 17V9M13 17V5M8 17v-3"/>
+                </svg>
                 <span>账户统计</span>
-              </template>
+              </div>
               
               <div class="stats-list">
                 <div class="stats-item">
-                  <span class="label">注册时间</span>
-                  <span class="value">{{ userInfo.registerTime }}</span>
+                  <div class="stats-icon register">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </div>
+                  <div class="stats-content">
+                    <span class="label">注册时间</span>
+                    <span class="value">{{ userInfo.registerTime }}</span>
+                  </div>
                 </div>
                 <div class="stats-item">
-                  <span class="label">最后登录</span>
-                  <span class="value">{{ userInfo.lastLogin }}</span>
+                  <div class="stats-icon login">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12,6 12,12 16,14"/>
+                    </svg>
+                  </div>
+                  <div class="stats-content">
+                    <span class="label">最后登录</span>
+                    <span class="value">{{ userInfo.lastLogin }}</span>
+                  </div>
                 </div>
                 <div class="stats-item">
-                  <span class="label">累计消费</span>
-                  <span class="value">¥{{ userInfo.totalSpent }}</span>
+                  <div class="stats-icon spent">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="1" x2="12" y2="23"/>
+                      <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                    </svg>
+                  </div>
+                  <div class="stats-content">
+                    <span class="label">累计消费</span>
+                    <span class="value highlight">¥{{ userInfo.totalSpent }}</span>
+                  </div>
                 </div>
                 <div class="stats-item">
-                  <span class="label">会员等级</span>
-                  <el-tag :type="getLevelType(userInfo.level)">
-                    {{ userInfo.level }}
-                  </el-tag>
+                  <div class="stats-icon level">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                    </svg>
+                  </div>
+                  <div class="stats-content">
+                    <span class="label">会员等级</span>
+                    <el-tag :type="getLevelType(userInfo.level)" size="small" effect="dark">
+                      {{ userInfo.level }}
+                    </el-tag>
+                  </div>
                 </div>
               </div>
-            </el-card>
+            </div>
           </el-col>
           
           <el-col :span="16">
-            <el-card>
-              <template #header>
-                <div class="card-header">
-                  <span>基本信息</span>
-                  <el-button 
-                    v-if="!editing" 
-                    type="primary" 
-                    @click="startEdit"
-                  >
-                    编辑资料
-                  </el-button>
-                  <div v-else>
-                    <el-button @click="cancelEdit">取消</el-button>
-                    <el-button type="primary" @click="saveProfile">保存</el-button>
-                  </div>
-                </div>
-              </template>
+            <!-- 基本信息卡片 -->
+            <div class="profile-card info-card">
+              <div class="card-header-custom">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                <span>基本信息</span>
+                <span v-if="editing" class="editing-badge">编辑中</span>
+              </div>
               
-              <el-form :model="userInfo" label-width="100px" :disabled="!editing">
-                <el-form-item label="用户名">
-                  <el-input v-model="userInfo.username" disabled />
-                </el-form-item>
+              <el-form :model="userInfo" label-width="100px" :disabled="!editing" class="profile-form">
+                <div class="form-grid">
+                  <el-form-item label="用户名">
+                    <el-input v-model="userInfo.username" disabled prefix-icon="User" />
+                  </el-form-item>
+                  
+                  <el-form-item label="邮箱">
+                    <el-input v-model="userInfo.email" placeholder="请输入邮箱" />
+                  </el-form-item>
+                  
+                  <el-form-item label="手机号">
+                    <el-input v-model="userInfo.phone" placeholder="请输入手机号" />
+                  </el-form-item>
+                  
+                  <el-form-item label="真实姓名">
+                    <el-input v-model="userInfo.realName" placeholder="请输入真实姓名" />
+                  </el-form-item>
+                  
+                  <el-form-item label="生日">
+                    <el-date-picker
+                      v-model="userInfo.birthday"
+                      type="date"
+                      placeholder="选择日期"
+                      format="YYYY-MM-DD"
+                      value-format="YYYY-MM-DD"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                  
+                  <el-form-item label="性别">
+                    <el-radio-group v-model="userInfo.gender">
+                      <el-radio label="male">男</el-radio>
+                      <el-radio label="female">女</el-radio>
+                      <el-radio label="other">其他</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </div>
                 
-                <el-form-item label="邮箱">
-                  <el-input v-model="userInfo.email" />
-                </el-form-item>
-                
-                <el-form-item label="手机号">
-                  <el-input v-model="userInfo.phone" />
-                </el-form-item>
-                
-                <el-form-item label="真实姓名">
-                  <el-input v-model="userInfo.realName" />
-                </el-form-item>
-                
-                <el-form-item label="生日">
-                  <el-date-picker
-                    v-model="userInfo.birthday"
-                    type="date"
-                    placeholder="选择日期"
-                    format="YYYY-MM-DD"
-                    value-format="YYYY-MM-DD"
-                  />
-                </el-form-item>
-                
-                <el-form-item label="性别">
-                  <el-radio-group v-model="userInfo.gender">
-                    <el-radio label="male">男</el-radio>
-                    <el-radio label="female">女</el-radio>
-                    <el-radio label="other">其他</el-radio>
-                  </el-radio-group>
-                </el-form-item>
-                
-                <el-form-item label="个人简介">
+                <el-form-item label="个人简介" class="bio-item">
                   <el-input
                     v-model="userInfo.bio"
                     type="textarea"
                     :rows="4"
                     placeholder="介绍一下自己..."
+                    :maxlength="200"
+                    show-word-limit
                   />
                 </el-form-item>
               </el-form>
-            </el-card>
+            </div>
             
-            <el-card class="mt-20">
-              <template #header>
+            <!-- 安全设置卡片 -->
+            <div class="profile-card security-card">
+              <div class="card-header-custom">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
                 <span>安全设置</span>
-              </template>
+              </div>
               
               <div class="security-settings">
                 <div class="security-item">
+                  <div class="security-icon password">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                  </div>
                   <div class="security-info">
                     <h4>登录密码</h4>
                     <p>定期更新密码，保护账户安全</p>
                   </div>
-                  <el-button @click="showPasswordDialog = true">修改密码</el-button>
+                  <el-button @click="showPasswordDialog = true" class="security-btn">修改密码</el-button>
                 </div>
                 
                 <div class="security-item">
+                  <div class="security-icon two-factor">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                  </div>
                   <div class="security-info">
                     <h4>两步验证</h4>
                     <p>开启两步验证，提升账户安全性</p>
@@ -191,23 +286,34 @@
                   <el-switch
                     v-model="userInfo.twoFactorEnabled"
                     @change="handleTwoFactorChange"
+                    active-color="#10B981"
                   />
                 </div>
                 
                 <div class="security-item">
+                  <div class="security-icon email" :class="{ verified: userInfo.emailVerified }">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                  </div>
                   <div class="security-info">
                     <h4>邮箱验证</h4>
                     <p>验证邮箱，确保账户安全</p>
                   </div>
-                  <el-tag v-if="userInfo.emailVerified" type="success">已验证</el-tag>
-                  <el-button v-else type="warning" size="small">去验证</el-button>
+                  <el-tag v-if="userInfo.emailVerified" type="success" effect="dark" size="small">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    已验证
+                  </el-tag>
+                  <el-button v-else type="warning" size="small" class="verify-btn">去验证</el-button>
                 </div>
               </div>
-            </el-card>
+            </div>
           </el-col>
         </el-row>
-      </el-main>
-    </el-container>
+      </main>
     
     <!-- 修改密码对话框 -->
     <el-dialog v-model="showPasswordDialog" title="修改密码" width="900px">
@@ -666,30 +772,191 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+// 设计系统
+$primary: #2563EB;
+$primary-light: #3B82F6;
+$secondary: #8B5CF6;
+$success: #10B981;
+$warning: #F59E0B;
+$danger: #EF4444;
+$text: #1E293B;
+$text-muted: #64748B;
+$border: #E2E8F0;
+$bg: #F8FAFC;
+$card-bg: rgba(255, 255, 255, 0.95);
+
 .profile-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, $bg 0%, #EEF2FF 100%);
+  position: relative;
+  overflow-x: hidden;
 }
 
-.el-header {
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+// 背景装饰
+.bg-decoration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.3;
+  
+  &.orb-1 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, rgba($primary, 0.2), rgba($secondary, 0.15));
+    top: -150px;
+    right: -150px;
+  }
+  
+  &.orb-2 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, rgba($success, 0.15), rgba($primary, 0.1));
+    bottom: -100px;
+    left: -100px;
+  }
+}
+
+// 浮动导航栏
+.page-header {
+  position: sticky;
+  top: 16px;
+  z-index: 100;
+  margin: 16px 24px 0;
+  background: $card-bg;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba($border, 0.6);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 16px 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid $border;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: $text-muted;
   
-  h2 {
-    color: #303133;
-    margin: 0;
+  &:hover {
+    border-color: $primary;
+    color: $primary;
+    background: rgba($primary, 0.05);
   }
 }
 
+.page-title {
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: $text;
+  }
+  
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: $text-muted;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  
+  .cancel-btn {
+    border-radius: 10px;
+  }
+  
+  .save-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-weight: 500;
+  }
+}
+
+// 主内容区
+.page-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+// 卡片通用样式
+.profile-card {
+  background: $card-bg;
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba($border, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: all 0.25s ease;
+  
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.card-header-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba($border, 0.6);
+  color: $text;
+  font-weight: 600;
+  font-size: 16px;
+  
+  svg {
+    color: $primary;
+  }
+  
+  .editing-badge {
+    margin-left: auto;
+    padding: 4px 10px;
+    background: rgba($warning, 0.1);
+    color: $warning;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+}
+
+// 头像区域
 .avatar-section {
   text-align: center;
   
@@ -700,100 +967,265 @@ onMounted(() => {
     
     .avatar-overlay {
       position: absolute;
-      top: 0;
-      right: 0;
+      top: -4px;
+      right: -4px;
       
       .remove-avatar-btn {
-        background: rgba(245, 108, 108, 0.9);
+        background: rgba($danger, 0.9);
         border: 2px solid #fff;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         
         &:hover {
-          background: #f56c6c;
+          background: $danger;
           transform: scale(1.1);
         }
       }
     }
     
     .avatar-display {
-      transition: all 0.3s ease;
-      background-color: #f5f5f5;
+      transition: all 0.25s ease;
+      background: linear-gradient(135deg, #E2E8F0, #F1F5F9);
+      border: 4px solid white;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
       
       &:hover {
         transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-      
-      // 确保头像图片正确显示
-      :deep(.el-avatar__inner) {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-      }
-      
-      // 当有src时，确保图片正确加载
-      &[src] {
-        :deep(.el-avatar__inner) {
-          background-image: inherit;
-        }
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
       }
     }
     
     .avatar-hint {
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 12px;
-      color: #909399;
+      color: $text-muted;
     }
   }
   
   .avatar-actions {
     .change-avatar-btn {
-      display: block;
-      margin-bottom: 16px;
-      min-width: 120px;
-      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 0 auto 16px;
+      min-width: 140px;
+      border-radius: 10px;
+      transition: all 0.25s ease;
       
       &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+        box-shadow: 0 4px 16px rgba($primary, 0.3);
       }
     }
     
     .avatar-tips {
-      margin-top: 12px;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 6px;
-      border-left: 3px solid #409eff;
+      padding: 14px;
+      background: linear-gradient(135deg, rgba($primary, 0.04), rgba($secondary, 0.04));
+      border-radius: 12px;
+      border-left: 3px solid $primary;
       
       p {
-        margin: 4px 0;
+        margin: 6px 0;
         font-size: 12px;
-        color: #606266;
-        line-height: 1.4;
+        color: $text-muted;
+        line-height: 1.5;
+        text-align: left;
         
-        &:first-child {
-          margin-top: 0;
-        }
+        &:first-child { margin-top: 0; }
+        &:last-child { margin-bottom: 0; }
+      }
+    }
+  }
+}
+
+// 统计列表
+.stats-list {
+  .stats-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba($border, 0.5);
+    
+    &:last-child { border-bottom: none; }
+    
+    .stats-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      
+      &.register {
+        background: rgba($primary, 0.1);
+        color: $primary;
+      }
+      &.login {
+        background: rgba($secondary, 0.1);
+        color: $secondary;
+      }
+      &.spent {
+        background: rgba($success, 0.1);
+        color: $success;
+      }
+      &.level {
+        background: rgba($warning, 0.1);
+        color: $warning;
+      }
+    }
+    
+    .stats-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      
+      .label {
+        font-size: 13px;
+        color: $text-muted;
+      }
+      
+      .value {
+        font-size: 14px;
+        font-weight: 600;
+        color: $text;
         
-        &:last-child {
-          margin-bottom: 0;
+        &.highlight {
+          color: $success;
         }
       }
     }
   }
 }
 
-// 头像预览对话框样式
+// 表单样式
+.profile-form {
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0 24px;
+  }
+  
+  .bio-item {
+    grid-column: 1 / -1;
+  }
+  
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+    
+    .el-form-item__label {
+      color: $text-muted;
+      font-weight: 500;
+    }
+    
+    .el-input__wrapper {
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px $border;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        box-shadow: 0 0 0 1px rgba($primary, 0.3);
+      }
+      
+      &.is-focus {
+        box-shadow: 0 0 0 2px rgba($primary, 0.2);
+      }
+    }
+    
+    .el-textarea__inner {
+      border-radius: 10px;
+    }
+  }
+}
+
+// 安全设置
+.security-settings {
+  .security-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    margin: 0 -24px;
+    border-bottom: 1px solid rgba($border, 0.5);
+    transition: background 0.2s ease;
+    
+    &:first-child {
+      margin-top: -4px;
+    }
+    
+    &:last-child {
+      border-bottom: none;
+      margin-bottom: -4px;
+    }
+    
+    &:hover {
+      background: rgba($bg, 0.5);
+    }
+    
+    .security-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      
+      &.password {
+        background: rgba($primary, 0.1);
+        color: $primary;
+      }
+      &.two-factor {
+        background: rgba($success, 0.1);
+        color: $success;
+      }
+      &.email {
+        background: rgba($warning, 0.1);
+        color: $warning;
+        
+        &.verified {
+          background: rgba($success, 0.1);
+          color: $success;
+        }
+      }
+    }
+    
+    .security-info {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+        color: $text;
+      }
+      
+      p {
+        margin: 0;
+        font-size: 13px;
+        color: $text-muted;
+      }
+    }
+    
+    .security-btn {
+      border-radius: 10px;
+    }
+    
+    .verify-btn {
+      border-radius: 8px;
+    }
+  }
+}
+
+// 头像预览对话框
 .avatar-preview-container {
   text-align: center;
-  padding: 20px;
+  padding: 24px;
   
   .el-avatar {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     border: 4px solid #fff;
   }
 }
@@ -804,65 +1236,60 @@ onMounted(() => {
   align-items: center;
 }
 
-.stats-list {
-  .stats-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
-    
-    &:last-child {
-      border-bottom: none;
-    }
-    
-    .label {
-      color: #909399;
-      font-size: 14px;
-    }
-    
-    .value {
-      color: #303133;
-      font-weight: 500;
-    }
+// 响应式
+@media (max-width: 1024px) {
+  .page-header {
+    margin: 12px 16px 0;
+  }
+  
+  .page-main {
+    padding: 20px 16px;
+  }
+  
+  :deep(.el-col-8) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  
+  :deep(.el-col-16) {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  
+  .profile-form .form-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.security-settings {
+@media (max-width: 768px) {
+  .page-header {
+    margin: 8px 12px 0;
+    border-radius: 12px;
+  }
+  
+  .header-content {
+    padding: 12px 16px;
+  }
+  
+  .page-title p {
+    display: none;
+  }
+  
   .security-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid #f0f0f0;
-    
-    &:last-child {
-      border-bottom: none;
-    }
+    flex-wrap: wrap;
     
     .security-info {
-      h4 {
-        margin: 0 0 4px 0;
-        color: #303133;
-        font-size: 16px;
-      }
-      
-      p {
-        margin: 0;
-        color: #909399;
-        font-size: 14px;
-      }
+      flex: 1 1 calc(100% - 64px);
     }
   }
 }
 
-.mt-20 {
-  margin-top: 20px;
+@media (prefers-reduced-motion: reduce) {
+  .gradient-orb,
+  .profile-card,
+  .avatar-display {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 </style>

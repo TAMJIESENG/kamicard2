@@ -370,18 +370,32 @@ const userStats = reactive({
 
 const cardList = ref([])
 
-const recentTransactions = ref([
-  {
-    id: 1,
-    description: '购买月卡 x1',
-    time: '2024-01-01 10:00:00'
-  },
-  {
-    id: 2,
-    description: '使用季卡',
-    time: '2024-01-02 14:30:00'
+const recentTransactions = ref([])
+
+// 加载最近交易记录
+const loadRecentTransactions = () => {
+  try {
+    const orders = JSON.parse(localStorage.getItem('all_orders') || '[]')
+    const userOrders = orders
+      .filter(order => String(order.userId) === String(user.value?.id))
+      .sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+      .slice(0, 5)
+      .map(order => ({
+        id: order.id,
+        description: `购买 ${order.productName || '商品'} x${order.quantity || 1}`,
+        time: order.createTime
+      }))
+    
+    recentTransactions.value = userOrders.length > 0 ? userOrders : [
+      { id: 1, description: '暂无交易记录', time: '—' }
+    ]
+  } catch (error) {
+    console.error('加载交易记录失败:', error)
+    recentTransactions.value = [
+      { id: 1, description: '暂无交易记录', time: '—' }
+    ]
   }
-])
+}
 
 const queryForm = reactive({
   cardNumber: ''
@@ -483,6 +497,7 @@ onMounted(() => {
   // 刷新用户数据确保余额同步
   userStore.refreshCurrentUser()
   loadUserCards()
+  loadRecentTransactions()
 })
 </script>
 
@@ -519,26 +534,42 @@ onMounted(() => {
 }
 
 .info-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  
   .info-item {
     display: flex;
     align-items: center;
     
     .info-icon {
-      font-size: 32px;
+      font-size: 36px;
       margin-right: 16px;
+      padding: 12px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(64, 158, 255, 0.05) 100%);
     }
     
     .info-content {
       h3 {
         margin: 0 0 4px 0;
-        font-size: 24px;
+        font-size: 26px;
+        font-weight: 700;
         color: #303133;
+        letter-spacing: -0.5px;
       }
       
       p {
         margin: 0;
         color: #909399;
         font-size: 14px;
+        font-weight: 500;
       }
     }
   }
@@ -557,8 +588,19 @@ onMounted(() => {
   
   .action-btn {
     width: 100%;
-    height: 40px;
+    height: 44px;
     justify-content: flex-start;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: translateX(4px);
+    }
+    
+    .el-icon {
+      margin-right: 8px;
+    }
   }
 }
 

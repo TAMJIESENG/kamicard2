@@ -1,118 +1,205 @@
 <template>
   <div class="coupon-claim-page">
-    <div class="page-header">
-      <h2>每日优惠券</h2>
-      <p>每天可以领取1-2张优惠券，快来领取吧！</p>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="gradient-orb orb-3"></div>
     </div>
+    
+    <!-- 浮动导航栏 -->
+    <header class="page-header-nav">
+      <div class="header-content">
+        <div class="header-left">
+          <button class="back-btn" @click="$router.go(-1)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <div class="page-title-info">
+            <h1>优惠券中心</h1>
+            <p>每天可领取 {{ dailyClaimLimit }} 张优惠券</p>
+          </div>
+        </div>
+        <div class="header-stats">
+          <div class="mini-stat">
+            <span class="mini-stat-value">{{ remainingClaims }}</span>
+            <span class="mini-stat-label">今日可领</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-value">{{ myCoupons.length }}</span>
+            <span class="mini-stat-label">我的券</span>
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <!-- 领取统计 -->
-    <div class="claim-stats">
-      <div class="stat-item">
-        <div class="stat-icon today">
-          <el-icon><Calendar /></el-icon>
+    <main class="page-main">
+      <!-- 领取统计卡片 -->
+      <div class="stats-section">
+        <div class="stat-card today-card">
+          <div class="stat-card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="stat-card-content">
+            <span class="stat-card-label">今日可领取</span>
+            <div class="stat-card-value">
+              <span class="current">{{ remainingClaims }}</span>
+              <span class="divider">/</span>
+              <span class="total">{{ dailyClaimLimit }}</span>
+            </div>
+          </div>
+          <div class="stat-card-progress">
+            <div class="progress-bar" :style="{ width: ((dailyClaimLimit - remainingClaims) / dailyClaimLimit * 100) + '%' }"></div>
+          </div>
         </div>
-        <div class="stat-content">
-          <div class="stat-label">今日可领取</div>
-          <div class="stat-value">{{ remainingClaims }} / {{ dailyClaimLimit }}</div>
+        
+        <div class="stat-card owned-card">
+          <div class="stat-card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+            </svg>
+          </div>
+          <div class="stat-card-content">
+            <span class="stat-card-label">我的优惠券</span>
+            <div class="stat-card-value">
+              <span class="current">{{ myCoupons.length }}</span>
+              <span class="unit">张</span>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div class="stat-item">
-        <div class="stat-icon total">
-          <el-icon><Ticket /></el-icon>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">我的优惠券</div>
-          <div class="stat-value">{{ myCoupons.length }} 张</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- 可领取优惠券列表 -->
-    <div class="claimable-coupons">
-      <h3>可领取优惠券</h3>
-      <div class="coupons-grid" v-if="claimableCoupons.length > 0">
-        <div
-          v-for="coupon in claimableCoupons"
-          :key="coupon.id"
-          class="coupon-card-claim"
-          :class="getCouponTypeClass(coupon.type)"
-        >
-          <div class="coupon-header">
-            <div class="coupon-icon-large">
-              <el-icon><Ticket /></el-icon>
-            </div>
-            <div class="coupon-discount-large">
-              {{ getCouponDiscountText(coupon) }}
-            </div>
+      <!-- 可领取优惠券列表 -->
+      <section class="coupons-section">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3>可领取优惠券</h3>
           </div>
-          
-          <div class="coupon-body">
-            <h4 class="coupon-name-large">{{ coupon.name }}</h4>
-            <p class="coupon-desc-large">{{ coupon.description }}</p>
-            <div class="coupon-meta">
-              <span class="validity">有效期至 {{ formatDate(coupon.validTo) }}</span>
+          <span class="section-count">{{ claimableCoupons.length }} 张可领</span>
+        </div>
+        
+        <div class="coupons-grid" v-if="claimableCoupons.length > 0">
+          <div
+            v-for="(coupon, index) in claimableCoupons"
+            :key="coupon.id"
+            class="coupon-card"
+            :class="getCouponTypeClass(coupon.type)"
+            :style="{ '--delay': index * 0.05 + 's' }"
+          >
+            <div class="coupon-left">
+              <div class="coupon-badge">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                </svg>
+              </div>
+              <div class="coupon-value">
+                {{ getCouponDiscountText(coupon) }}
+              </div>
             </div>
-          </div>
-          
-          <div class="coupon-footer">
-            <el-button
-              type="primary"
-              size="large"
-              :loading="claiming === coupon.id"
-              :disabled="remainingClaims <= 0 || hasClaimed(coupon.id)"
-              @click="claimCoupon(coupon)"
-              class="claim-btn"
-            >
-              <el-icon v-if="claiming !== coupon.id"><Plus /></el-icon>
-              {{ hasClaimed(coupon.id) ? '已领取' : '立即领取' }}
-            </el-button>
+            
+            <div class="coupon-right">
+              <div class="coupon-info">
+                <h4 class="coupon-name">{{ coupon.name }}</h4>
+                <p class="coupon-desc">{{ coupon.description }}</p>
+                <div class="coupon-meta">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
+                  <span>有效期至 {{ formatDate(coupon.validTo) }}</span>
+                </div>
+              </div>
+              
+              <el-button
+                type="primary"
+                :loading="claiming === coupon.id"
+                :disabled="remainingClaims <= 0 || hasClaimed(coupon.id)"
+                @click="claimCoupon(coupon)"
+                class="claim-btn"
+              >
+                <svg v-if="claiming !== coupon.id && !hasClaimed(coupon.id)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                {{ hasClaimed(coupon.id) ? '已领取' : '立即领取' }}
+              </el-button>
+            </div>
+            
+            <!-- 装饰圆点 -->
+            <div class="coupon-dots">
+              <span class="dot top"></span>
+              <span class="dot bottom"></span>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <el-empty v-else description="暂无可领取的优惠券" />
-    </div>
+        
+        <div class="empty-state" v-else>
+          <div class="empty-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+            </svg>
+          </div>
+          <p>暂无可领取的优惠券</p>
+          <span>明天再来看看吧~</span>
+        </div>
+      </section>
 
-    <!-- 我的优惠券 -->
-    <div class="my-coupons-section">
-      <h3>我的优惠券</h3>
-      <div class="coupons-grid" v-if="myCoupons.length > 0">
-        <div
-          v-for="coupon in myCoupons"
-          :key="coupon.id"
-          class="coupon-card-owned"
-          :class="{
-            'used': coupon.usedCount > 0,
-            'expired': new Date(coupon.validTo) <= new Date()
-          }"
-        >
-          <div class="coupon-header-owned">
-            <div class="coupon-icon-small">
-              <el-icon><Ticket /></el-icon>
-            </div>
-            <div class="coupon-info-owned">
-              <div class="coupon-name-small">{{ coupon.name }}</div>
-              <div class="coupon-code-small">{{ coupon.code }}</div>
-            </div>
-            <div class="coupon-discount-small">
-              {{ getCouponDiscountText(coupon) }}
-            </div>
+      <!-- 我的优惠券 -->
+      <section class="coupons-section my-coupons">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <h3>我的优惠券</h3>
           </div>
-          
-          <div class="coupon-status">
-            <el-tag
-              :type="getStatusTagType(coupon)"
-              size="small"
-            >
-              {{ getStatusText(coupon) }}
-            </el-tag>
+          <span class="section-count">{{ myCoupons.length }} 张</span>
+        </div>
+        
+        <div class="my-coupons-grid" v-if="myCoupons.length > 0">
+          <div
+            v-for="coupon in myCoupons"
+            :key="coupon.id"
+            class="my-coupon-card"
+            :class="{
+              'used': coupon.usedCount > 0,
+              'expired': new Date(coupon.validTo) <= new Date()
+            }"
+          >
+            <div class="my-coupon-left">
+              <div class="my-coupon-value">{{ getCouponDiscountText(coupon) }}</div>
+            </div>
+            <div class="my-coupon-right">
+              <div class="my-coupon-name">{{ coupon.name }}</div>
+              <div class="my-coupon-code">{{ coupon.code }}</div>
+              <el-tag :type="getStatusTagType(coupon)" size="small" effect="plain">
+                {{ getStatusText(coupon) }}
+              </el-tag>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <el-empty v-else description="您还没有优惠券，快去领取吧！" />
-    </div>
+        
+        <div class="empty-state" v-else>
+          <div class="empty-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+          </div>
+          <p>您还没有优惠券</p>
+          <span>快去上方领取吧！</span>
+        </div>
+      </section>
+    </main>
   </div>
 </template>
 
@@ -341,259 +428,604 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+// 设计系统
+$primary: #2563EB;
+$primary-light: #3B82F6;
+$secondary: #8B5CF6;
+$success: #10B981;
+$warning: #F59E0B;
+$danger: #EF4444;
+$text: #1E293B;
+$text-muted: #64748B;
+$border: #E2E8F0;
+$bg: #F8FAFC;
+$card-bg: rgba(255, 255, 255, 0.95);
+
 .coupon-claim-page {
-  padding: 24px;
-  background: #f5f7fa;
   min-height: 100vh;
+  background: linear-gradient(135deg, $bg 0%, #EEF2FF 100%);
+  position: relative;
+  overflow-x: hidden;
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 32px;
+// 背景装饰
+.bg-decoration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.35;
   
-  h2 {
-    font-size: 28px;
+  &.orb-1 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, rgba($primary, 0.25), rgba($secondary, 0.2));
+    top: -150px;
+    right: -100px;
+  }
+  
+  &.orb-2 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, rgba(#F472B6, 0.2), rgba($danger, 0.15));
+    bottom: 20%;
+    left: -150px;
+  }
+  
+  &.orb-3 {
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, rgba($success, 0.15), rgba(#06B6D4, 0.1));
+    top: 40%;
+    right: 10%;
+  }
+}
+
+// 浮动导航栏
+.page-header-nav {
+  position: sticky;
+  top: 16px;
+  z-index: 100;
+  margin: 16px 24px 0;
+  background: $card-bg;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba($border, 0.6);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid $border;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: $text-muted;
+  
+  &:hover {
+    border-color: $primary;
+    color: $primary;
+    background: rgba($primary, 0.05);
+  }
+}
+
+.page-title-info {
+  h1 {
+    margin: 0;
+    font-size: 20px;
     font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 8px;
+    color: $text;
   }
   
   p {
-    font-size: 14px;
-    color: #6b7280;
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: $text-muted;
   }
 }
 
-.claim-stats {
+.header-stats {
+  display: flex;
+  gap: 24px;
+  
+  .mini-stat {
+    text-align: center;
+    
+    .mini-stat-value {
+      display: block;
+      font-size: 24px;
+      font-weight: 700;
+      color: $primary;
+    }
+    
+    .mini-stat-label {
+      font-size: 12px;
+      color: $text-muted;
+    }
+  }
+}
+
+// 主内容区
+.page-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+// 统计卡片
+.stats-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   margin-bottom: 32px;
+}
+
+.stat-card {
+  background: $card-bg;
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba($border, 0.6);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
   
-  .stat-item {
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+  
+  &.today-card {
+    .stat-card-icon {
+      background: linear-gradient(135deg, $primary, $primary-light);
+    }
+    .stat-card-progress .progress-bar {
+      background: linear-gradient(90deg, $primary, $primary-light);
+    }
+  }
+  
+  &.owned-card {
+    .stat-card-icon {
+      background: linear-gradient(135deg, #F472B6, #EC4899);
+    }
+  }
+  
+  .stat-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
-    .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-right: 16px;
-      
-      &.today {
-        background: #dbeafe;
-        color: #2563eb;
-      }
-      
-      &.total {
-        background: #fce7f3;
-        color: #db2777;
-      }
-    }
-    
-    .stat-content {
-      .stat-label {
-        font-size: 14px;
-        color: #6b7280;
-        margin-bottom: 4px;
-      }
-      
-      .stat-value {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1f2937;
-      }
-    }
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
   }
-}
-
-.claimable-coupons,
-.my-coupons-section {
-  margin-bottom: 32px;
   
-  h3 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 20px;
+  .stat-card-content {
+    flex: 1;
+    
+    .stat-card-label {
+      font-size: 14px;
+      color: $text-muted;
+      margin-bottom: 4px;
+      display: block;
+    }
+    
+    .stat-card-value {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      
+      .current {
+        font-size: 32px;
+        font-weight: 700;
+        color: $text;
+      }
+      
+      .divider {
+        font-size: 20px;
+        color: $text-muted;
+      }
+      
+      .total, .unit {
+        font-size: 16px;
+        color: $text-muted;
+      }
+    }
+  }
+  
+  .stat-card-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba($border, 0.5);
+    
+    .progress-bar {
+      height: 100%;
+      border-radius: 0 2px 2px 0;
+      transition: width 0.5s ease;
+    }
   }
 }
 
+// 优惠券区域
+.coupons-section {
+  margin-bottom: 32px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+    svg {
+      color: $primary;
+    }
+    
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: $text;
+    }
+  }
+  
+  .section-count {
+    padding: 6px 14px;
+    background: rgba($primary, 0.1);
+    color: $primary;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+}
+
+// 优惠券卡片网格
 .coupons-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 20px;
 }
 
-.coupon-card-claim {
+// 优惠券卡片 - 票券样式
+.coupon-card {
   background: white;
   border-radius: 16px;
+  display: flex;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba($border, 0.5);
   position: relative;
+  transition: all 0.25s ease;
+  animation: fadeInUp 0.5s ease forwards;
+  animation-delay: var(--delay);
+  opacity: 0;
   
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   }
   
-  &.type-percentage {
-    .coupon-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
+  // 类型颜色
+  &.type-percentage .coupon-left {
+    background: linear-gradient(135deg, #667eea, #764ba2);
   }
   
-  &.type-fixed {
-    .coupon-header {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
+  &.type-fixed .coupon-left {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
   }
   
-  &.type-threshold {
-    .coupon-header {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
+  &.type-threshold .coupon-left {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
   }
   
-  .coupon-header {
-    padding: 24px;
-    color: white;
+  .coupon-left {
+    width: 120px;
+    padding: 20px 16px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    color: white;
+    position: relative;
+    flex-shrink: 0;
     
-    .coupon-icon-large {
-      font-size: 48px;
-      opacity: 0.9;
+    .coupon-badge {
+      opacity: 0.6;
+      margin-bottom: 8px;
     }
     
-    .coupon-discount-large {
-      font-size: 36px;
+    .coupon-value {
+      font-size: 28px;
       font-weight: 700;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
   }
   
-  .coupon-body {
+  .coupon-right {
+    flex: 1;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     
-    .coupon-name-large {
-      font-size: 18px;
-      font-weight: 600;
-      color: #1f2937;
-      margin: 0 0 8px 0;
-    }
-    
-    .coupon-desc-large {
-      font-size: 14px;
-      color: #6b7280;
-      margin: 0 0 12px 0;
-      line-height: 1.5;
-    }
-    
-    .coupon-meta {
-      font-size: 12px;
-      color: #9ca3af;
+    .coupon-info {
+      .coupon-name {
+        margin: 0 0 6px;
+        font-size: 16px;
+        font-weight: 600;
+        color: $text;
+      }
       
-      .validity {
-        display: inline-flex;
+      .coupon-desc {
+        margin: 0 0 10px;
+        font-size: 13px;
+        color: $text-muted;
+        line-height: 1.5;
+      }
+      
+      .coupon-meta {
+        display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        font-size: 12px;
+        color: #9CA3AF;
+        
+        svg {
+          flex-shrink: 0;
+        }
       }
     }
-  }
-  
-  .coupon-footer {
-    padding: 0 20px 20px;
     
     .claim-btn {
+      margin-top: 16px;
       width: 100%;
-      height: 44px;
-      font-size: 16px;
-      font-weight: 600;
-    }
-  }
-}
-
-.coupon-card-owned {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-  
-  &.used,
-  &.expired {
-    opacity: 0.6;
-  }
-  
-  .coupon-header-owned {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-    
-    .coupon-icon-small {
-      width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 8px;
+      border-radius: 10px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 20px;
-    }
-    
-    .coupon-info-owned {
-      flex: 1;
+      gap: 6px;
+      transition: all 0.25s ease;
       
-      .coupon-name-small {
-        font-size: 15px;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 4px;
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($primary, 0.3);
       }
-      
-      .coupon-code-small {
-        font-size: 12px;
-        color: #6b7280;
-        font-family: monospace;
-      }
-    }
-    
-    .coupon-discount-small {
-      font-size: 18px;
-      font-weight: 700;
-      color: #dc2626;
     }
   }
   
-  .coupon-status {
-    text-align: right;
+  // 装饰圆点（票券效果）
+  .coupon-dots {
+    position: absolute;
+    left: 112px;
+    top: 0;
+    bottom: 0;
+    width: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    
+    .dot {
+      width: 16px;
+      height: 16px;
+      background: $bg;
+      border-radius: 50%;
+      
+      &.top {
+        transform: translateY(-50%);
+      }
+      
+      &.bottom {
+        transform: translateY(50%);
+      }
+    }
   }
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 我的优惠券网格
+.my-coupons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.my-coupon-card {
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba($border, 0.6);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+  
+  &.used, &.expired {
+    opacity: 0.5;
+    
+    .my-coupon-left {
+      background: linear-gradient(135deg, #9CA3AF, #6B7280);
+    }
+  }
+  
+  .my-coupon-left {
+    width: 80px;
+    background: linear-gradient(135deg, $primary, $secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    .my-coupon-value {
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+    }
+  }
+  
+  .my-coupon-right {
+    flex: 1;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .my-coupon-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: $text;
+    }
+    
+    .my-coupon-code {
+      font-size: 12px;
+      color: $text-muted;
+      font-family: monospace;
+    }
+  }
+}
+
+// 空状态
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: $card-bg;
+  border-radius: 16px;
+  border: 1px dashed rgba($border, 0.8);
+  
+  .empty-icon {
+    margin-bottom: 16px;
+    color: #CBD5E1;
+  }
+  
+  p {
+    margin: 0 0 4px;
+    font-size: 16px;
+    color: $text;
+    font-weight: 500;
+  }
+  
+  span {
+    font-size: 14px;
+    color: $text-muted;
+  }
+}
+
+// 响应式
 @media (max-width: 768px) {
+  .page-header-nav {
+    margin: 8px 12px 0;
+    border-radius: 12px;
+  }
+  
+  .header-content {
+    padding: 12px 16px;
+  }
+  
+  .page-title-info p {
+    display: none;
+  }
+  
+  .header-stats {
+    gap: 16px;
+    
+    .mini-stat-value {
+      font-size: 20px;
+    }
+  }
+  
+  .page-main {
+    padding: 16px 12px;
+  }
+  
+  .stats-section {
+    grid-template-columns: 1fr;
+  }
+  
   .coupons-grid {
     grid-template-columns: 1fr;
   }
   
-  .claim-stats {
+  .coupon-card {
+    .coupon-left {
+      width: 100px;
+      
+      .coupon-value {
+        font-size: 24px;
+      }
+    }
+    
+    .coupon-dots {
+      left: 92px;
+    }
+  }
+  
+  .my-coupons-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-orb,
+  .coupon-card,
+  .stat-card {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>

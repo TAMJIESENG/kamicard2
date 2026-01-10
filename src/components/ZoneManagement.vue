@@ -283,7 +283,7 @@
           <el-table-column prop="name" label="商品名称" width="200">
             <template #default="scope">
               <div class="product-name-cell">
-                <img :src="scope.row.image || '/ceshi/default-product.jpg'" class="product-thumb" />
+                <img :src="scope.row.image || DEFAULT_PRODUCT_IMAGE" class="product-thumb" />
                 <div>
                   <div class="product-name">{{ scope.row.name }}</div>
                   <div class="product-id">ID: {{ scope.row.id }}</div>
@@ -773,6 +773,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Plus, More, Edit, Delete, Switch, Goods, Search, Upload, User
 } from '@element-plus/icons-vue'
+
+// 默认商品图片 - 使用 Vite 的 BASE_URL
+const DEFAULT_PRODUCT_IMAGE = `${import.meta.env.BASE_URL}default-product.jpg`
 
 // 页面状态
 const loading = ref(false)
@@ -1806,23 +1809,23 @@ const getCardTypeTagType = (duration) => {
 const getCardTypeStock = (cardTypeId) => {
   try {
     const allCards = JSON.parse(localStorage.getItem('all_cards') || '[]')
-    const currentZone = zones.value.find(z => z.id === selectedZone.value)
-    const currentProduct = currentZone?.products.find(p => p.id === editingProduct.value?.id)
+    const zoneData = zones.value.find(z => z.id === currentZone.value?.id)
+    const currentProduct = zoneData?.products.find(p => p.id === editingProduct.value?.id)
     
     console.log('=== 统计卡密类型库存 ===')
     console.log('卡密类型ID:', cardTypeId)
-    console.log('当前选中专区:', selectedZone.value, currentZone?.name)
+    console.log('当前选中专区:', currentZone.value?.id, zoneData?.name)
     console.log('当前编辑商品:', editingProduct.value?.id, currentProduct?.name)
     console.log('所有卡密数量:', allCards.length)
     
-    if (!currentProduct || !currentZone) {
+    if (!currentProduct || !zoneData) {
       console.log('找不到当前商品或专区，返回0')
       return 0
     }
     
     // 先找到所有相关的卡密
     const relatedCards = allCards.filter(card => 
-      card.zoneId === currentZone.id &&
+      card.zoneId === zoneData.id &&
       card.productId === currentProduct.id
     )
     
